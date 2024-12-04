@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.log
+
+# Virtual environments
+env/
+venv/
+
+# Environment variables
+.env
+
+# Build artifacts
+ReasonChain.egg-info/
+
+# Byte-compiled Python files
+*.pyc
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Miscellaneous
+.DS_Store

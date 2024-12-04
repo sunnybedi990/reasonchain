@@ -1,0 +1,2 @@
+openai
+sentence_transformers
