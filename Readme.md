@@ -39,7 +39,22 @@ cd reasonchain
 pip install -r requirements.txt
 ```
 
-### **3. Configure API Keys**
+### **3. Install as an Editable Package**
+Use the `-e` flag to install the package in "editable mode." This allows you to make changes to the library code and have those changes immediately reflected without needing to reinstall.
+
+```bash
+pip install -e .
+```
+After running `pip install -e .`, you can verify the installation by importing the library:
+```bash
+python -c "import reasonchain; print(reasonchain.__name__)"
+```
+This should output:
+```plaintext
+reasonchain
+```
+
+### **4. Configure API Keys**
 Create a `.env` file and add your API keys:
 ```plaintext
 OPENAI_API_KEY=your_openai_api_key
