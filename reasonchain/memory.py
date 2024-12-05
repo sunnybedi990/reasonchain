@@ -49,3 +49,17 @@ class Memory:
         results = self.long_term.search(query_embedding, top_k=top_k)
         print(f"[Memory] Retrieved {len(results)} results from long-term memory.")
         return results
+
+
+class SharedMemory:
+    def __init__(self):
+        self.memory_pool = {}
+
+    def add_entry(self, key, value):
+        self.memory_pool[key] = value
+
+    def retrieve_entry(self, key):
+        return self.memory_pool.get(key, None)
+
+    def list_keys(self):
+        return list(self.memory_pool.keys())

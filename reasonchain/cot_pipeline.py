@@ -16,6 +16,8 @@ class CoTPipeline:
         Add a reasoning step to the pipeline.
         :param description: Step description.
         """
+        if not isinstance(description, str):
+            description = str(description)
         self.steps.append(description)
 
     def execute(self, model_manager):

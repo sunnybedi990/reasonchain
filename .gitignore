@@ -1,20 +1,24 @@
-# Python
+# Byte-compiled Python files
 __pycache__/
 *.py[cod]
 *.pyo
+.pypirc
+
+# Log files
 *.log
 
 # Virtual environments
 env/
 venv/
-
-# Environment variables
-.env
+*.env
 
 # Build artifacts
 ReasonChain.egg-info/
+reasonchain.egg-info/
+build/
+dist/
 
-# Byte-compiled Python files
+# Byte-compiled files
 *.pyc
 
 # Jupyter Notebook checkpoints
@@ -22,3 +26,20 @@ ReasonChain.egg-info/
 
 # Miscellaneous
 .DS_Store
+Thumbs.db
+*.swp
+
+# IDE-specific
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Test artifacts
+coverage/
+.tox/
+.nox/
+pytest_cache/
+htmlcov/
+*.cover
+steps.txt

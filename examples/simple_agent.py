@@ -1,7 +1,7 @@
 from reasonchain import Agent, CoTPipeline
 
 # Initialize an agent
-agent = Agent(name="MemoryBot", model="openai-gpt4o")
+agent = Agent(name="MemoryBot", model_name="gpt-4o",api='openai')
 
 # Initialize CoT pipeline
 pipeline = CoTPipeline(agent=agent)

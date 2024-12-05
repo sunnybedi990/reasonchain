@@ -1,13 +1,7 @@
 from reasonchain import Agent
 from reasonchain.cot_pipeline import ParallelCoTPipeline
-import os
-from dotenv import load_dotenv
 
-load_dotenv()
-
-# Initialize an agent with OpenAI GPT
-api_key = os.getenv("OPENAI_API_KEY")
-agent = Agent(name="ParallelBot", model_name="gpt-4o", api_key=api_key)
+agent = Agent(name="ParallelBot", model_name="gpt-4o", api='openai')
 
 # Initialize Parallel CoT pipeline
 pipeline = ParallelCoTPipeline(agent=agent)

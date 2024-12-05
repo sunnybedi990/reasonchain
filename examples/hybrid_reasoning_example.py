@@ -2,14 +2,9 @@ from reasonchain import Agent
 from reasonchain.cot_pipeline import HybridCoTPipeline
 from reasonchain.utils import dynamic_complexity_evaluator
 from reasonchain.model_manager import ModelManager
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
 
 # Initialize an agent with OpenAI GPT
-api_key = os.getenv("OPENAI_API_KEY")
-agent = Agent(name="HybridBot", model_name="gpt-4o", api_key=api_key)
+agent = Agent(name="HybridBot", model_name="gpt-4o", api='openai')
 # Define query
 query = "What are the best practices for optimizing SQL queries?"
 # Initialize the Hybrid pipeline
@@ -30,7 +25,7 @@ for task in task_list:
 # Execute the pipeline
 response = pipeline.execute(agent.model_manager)
 def summarize_output(output):
-    summarizer = ModelManager(model_name="gpt-4o", api_key=api_key)
+    summarizer = ModelManager(model_name="gpt-4o", api='openai')
     summary = summarizer.summarize(output)
     return summary
 

@@ -1,13 +1,7 @@
 from reasonchain import Agent
 from reasonchain.cot_pipeline import TreeOfThoughtPipeline
-import os
-from dotenv import load_dotenv
 
-load_dotenv()
-
-# Initialize an agent with OpenAI GPT
-api_key = os.getenv("OPENAI_API_KEY")
-agent = Agent(name="ToTBot", model_name="gpt-4o", api_key=api_key)
+agent = Agent(name="ToTBot", model_name="gpt-4o", api='openai')
 
 # Initialize ToT pipeline
 pipeline = TreeOfThoughtPipeline(agent=agent)

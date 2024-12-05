@@ -1,2 +1,9 @@
 openai
-sentence_transformers
+transformers
+faiss-cpu
+numpy
+scikit-learn
+torch
+tqdm
+ollama
+groq

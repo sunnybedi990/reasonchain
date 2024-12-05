@@ -1,14 +1,7 @@
 from reasonchain import Agent
 from reasonchain.cot_pipeline import CoTPipeline
-import os
-from dotenv import load_dotenv
 
-load_dotenv()
-
-# Initialize an agent with OpenAI GPT
-api_key = os.getenv("OPENAI_API_KEY")
-
-agent = Agent(name="MemoryEnhancedBot", model_name="gpt-4o-mini", api_key=api_key)
+agent = Agent(name="MemoryEnhancedBot", model_name="gpt-4o-mini", api='openai')
 
 # Initialize CoT pipeline
 pipeline = CoTPipeline(agent=agent)
