@@ -1,2 +1,23 @@
-include README.md
+# Include necessary files
+include setup.py
+include requirements.txt
+include Readme.md
 include LICENSE
+include MANIFEST.in
+
+# Include all Python source files
+recursive-include reasonchain *.py
+recursive-include examples *.py
+recursive-include tests *
+
+# Exclude unwanted files and directories
+exclude vector_db_tesla.pkl
+exclude vector_db_tesla.index
+exclude steps.txt
+exclude .pypirc
+exclude .env
+
+
+# Exclude directories
+prune pdfs
+prune reasonchain/__pycache__

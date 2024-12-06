@@ -43,3 +43,7 @@ pytest_cache/
 htmlcov/
 *.cover
 steps.txt
+
+pdfs/
+*.index
+*.pkl

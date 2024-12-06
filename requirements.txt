@@ -1,9 +1,43 @@
-openai
-transformers
-faiss-cpu
-numpy
-scikit-learn
+# Core Libraries
+#numpy<2
+#scikit-learn
 torch
 tqdm
+
+# Database Libraries
+faiss-cpu
+# faiss-gpu - Use conda for GPU
+pymilvus
+pinecone
+qdrant-client
+weaviate-client
+
+# LLM Integration
+transformers
 ollama
 groq
+openai
+
+# Retrieval-Augmented Generation (RAG)
+tabula-py
+camelot-py
+pymupdf
+sentence-transformers
+tensorflow_hub
+gensim
+layoutparser
+pdf2image
+pytesseract
+pdfplumber
+spacy
+fastapi[standard]
+jpype1
+llama-index-core==0.12.2
+llama-parse
+llama-index-readers-file
+python-dotenv
+opencv-python
+
+# NLP Models
+# Uncomment the following line to download Spacy's English model
+# python -m spacy download en_core_web_sm

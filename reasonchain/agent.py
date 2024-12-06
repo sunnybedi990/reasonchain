@@ -39,34 +39,43 @@ class Agent:
             logging.error(f"[{self.name}] Error observing input: {e}")
             return None
 
-    def reason(self, cot_pipeline):
+    def reason(self, cot_pipeline, use_rag=False, rag_query=None, top_k=5):
         """
-        Execute the CoT pipeline for reasoning.
+        Execute the CoT pipeline for reasoning, optionally using RAG for context.
         :param cot_pipeline: CoTPipeline instance.
+        :param use_rag: Whether to augment reasoning with RAG.
+        :param rag_query: Query string for RAG (if applicable).
+        :param top_k: Number of RAG results to retrieve.
         :return: Reasoned response.
         """
         try:
             logging.info(f"[{self.name}] Starting reasoning process...")
+
+            # Retrieve short-term context
             context = self.memory.retrieve_short_term()
-            if not context:
-                logging.warning(f"[{self.name}] No context in short-term memory.")
-                context_str = "No context available."
-            else:
-                # Convert list of dictionaries to a string
-                context_str = " | ".join(
-                    [f"{key}: {value}" for entry in context for key, value in entry.items()]
-                    if isinstance(context[0], dict) else context
-                )
-            logging.info(f"[{self.name}] Context from short-term memory: {context_str}")
-            long_term_context = self.memory.retrieve_long_term(context_str) if context_str else None
-            logging.info(f"[{self.name}] Retrieved from long-term memory: {long_term_context}")
+            context_str = " | ".join(
+                [f"{key}: {value}" for entry in context for key, value in entry.items()]
+                if context and isinstance(context[0], dict) else context
+            ) or "No context available."
+
+            # Optionally retrieve RAG context
+            rag_context = []
+            if use_rag and rag_query:
+                rag_context = self.retrieve_rag_context(rag_query, top_k=top_k)
+
+            # Combine contexts
+            combined_context = f"Short-term context: {context_str}\nRAG context: {rag_context}" if rag_context else context_str
+            logging.info(f"[{self.name}] Combined context for reasoning: {combined_context}")
+
+            # Execute CoT pipeline
             if not hasattr(cot_pipeline, "execute"):
                 raise AttributeError("Provided CoT pipeline is invalid or missing an 'execute' method.")
-            response = cot_pipeline.execute(self.model_manager)
+            response = cot_pipeline.execute(self.model_manager, combined_context)
             return response
         except Exception as e:
             logging.error(f"[{self.name}] Error during reasoning: {e}")
             return None
+
 
         
     def act(self, response):
@@ -170,6 +179,26 @@ class Agent:
             logging.info(f"[{self.name}] Task {task_id} progress: {status}")
         except Exception as e:
             logging.error(f"[{self.name}] Error tracking task progress: {e}")
+    
+    def retrieve_rag_context(self, query, top_k=5):
+        """
+        Retrieve context from RAG-based long-term memory.
+        :param query: Query string for RAG.
+        :param top_k: Number of results to retrieve.
+        :return: List of relevant context or error message.
+        """
+        try:
+            logging.info(f"[{self.name}] Querying RAG memory for: {query}")
+            results = self.memory.retrieve_long_term_rag(query, top_k=top_k)
+            if not results:
+                logging.info(f"[{self.name}] No relevant context found in RAG memory.")
+                return "No relevant context found."
+            logging.info(f"[{self.name}] Retrieved RAG context: {results}")
+            return results
+        except Exception as e:
+            logging.error(f"[{self.name}] Error retrieving RAG context: {e}")
+            return f"Error retrieving context: {e}"
+
 
             
 # MultiAgentSystem Class
@@ -222,6 +251,38 @@ class MultiAgentSystem:
         print(f"Assigning task '{task}' to agent {least_busy_agent.name}.")
         least_busy_agent.observe(task)
         return task
+    
+    def assign_task_with_rag(self, task, rag_query=None, top_k=5):
+        """
+        Assign a task to an available agent with optional RAG context retrieval.
+        :param task: Task details.
+        :param rag_query: Optional RAG query for augmenting context.
+        :param top_k: Number of RAG results to retrieve.
+        """
+        if not self.task_queue:
+            print("No tasks in the queue.")
+            return None
+
+        _, task = heapq.heappop(self.task_queue)
+        available_agents = [agent for agent in self.agents.values() if not agent.is_busy]
+        if not available_agents:
+            print("No available agents to assign tasks.")
+            return None
+
+        # Assign task to the least busy agent
+        least_busy_agent = min(available_agents, key=lambda x: len(x.memory.retrieve_short_term()))
+        least_busy_agent.observe(task)
+
+        # Retrieve RAG context if applicable
+        if rag_query:
+            rag_context = least_busy_agent.retrieve_rag_context(rag_query, top_k=top_k)
+            if rag_context:
+                task["rag_context"] = rag_context
+                least_busy_agent.observe({"RAG_context": rag_context})
+                print(f"Assigned RAG-augmented task to {least_busy_agent.name}: {task}")
+
+        print(f"Assigning task '{task}' to agent {least_busy_agent.name}.")
+        return task
 
     def send_message(self, sender, recipient, content):
         """
@@ -271,6 +332,35 @@ class MultiAgentSystem:
             else:
                 print(f"Agent {agent_name} is not registered in the system.")
 
+    def collaborate_with_rag(self, agent_names, task, rag_query=None, top_k=5):
+        """
+        Enable agents to collaborate on a task with optional RAG context retrieval.
+        :param agent_names: List of agent names involved in the collaboration.
+        :param task: The task to be shared.
+        :param rag_query: Query string for RAG context (if applicable).
+        :param top_k: Number of RAG results to retrieve.
+        """
+        if not agent_names:
+            print("No agents specified for collaboration.")
+            return
+
+        rag_context = None
+        if rag_query:
+            # Use the first agent to retrieve RAG context
+            first_agent = self.agents.get(agent_names[0])
+            if first_agent:
+                rag_context = first_agent.retrieve_rag_context(rag_query, top_k=top_k)
+
+        for agent_name in agent_names:
+            if agent_name in self.agents:
+                agent = self.agents[agent_name]
+                collaboration_task = {"task": task}
+                if rag_context:
+                    collaboration_task["RAG_context"] = rag_context
+                agent.observe(collaboration_task)
+                print(f"Agent {agent_name} is collaborating on task: {collaboration_task}")
+            else:
+                print(f"Agent {agent_name} is not registered in the system.")
 
 
 
