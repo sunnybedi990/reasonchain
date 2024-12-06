@@ -1,226 +1,216 @@
-# ReasonChain
+# **ReasonChain**
 
-**ReasonChain** is a modular and extensible AI reasoning library designed for creating intelligent agents capable of executing advanced reasoning processes. It supports **Chain of Thought (CoT)** reasoning, **Tree of Thought (ToT)** reasoning, **Parallel Chains**, and integrates with **Retrieval-Augmented Generation (RAG)** for enhanced knowledge management.
+**ReasonChain** is a versatile AI reasoning library for building intelligent agents capable of advanced reasoning processes. It supports **Chain of Thought (CoT)**, **Tree of Thought (ToT)**, **Parallel Chains**, and **Retrieval-Augmented Generation (RAG)**, making it ideal for applications requiring dynamic problem-solving and contextual understanding.
 
 ---
 
-## Features
+## **Features**
 
 1. **Customizable Reasoning Pipelines**:
-   - Support for Chain of Thought (CoT), Tree of Thought (ToT), Parallel Chains, and Hybrid Pipelines.
-   - Task decomposition, execution, and validation.
+   - Seamless integration of CoT, ToT, Parallel Chains, and Hybrid Pipelines.
+   - Facilitates task decomposition, execution, and validation.
 
 2. **RAG Integration**:
-   - Retrieve and augment responses using long-term memory stored in vector databases like FAISS.
+   - Incorporates external knowledge using vector databases like FAISS.
+   - Boosts agent reasoning with document-based context retrieval.
 
-3. **Short-term and Long-term Memory**:
-   - Session-based short-term memory for reasoning chains.
-   - Persistent long-term memory powered by FAISS.
+3. **Memory Management**:
+   - Short-term memory for reasoning session context.
+   - Persistent long-term memory for scalable storage using FAISS.
 
-4. **LLM Integration**:
-   - Seamlessly integrate with OpenAI GPT, Llama, and other models for response generation and summarization.
+4. **LLM Compatibility**:
+   - Supports OpenAI GPT, Llama, and other models for robust reasoning and summarization.
 
 5. **Utility Tools**:
-   - Dynamic complexity evaluation for reasoning steps.
-   - Centralized Model Manager for managing LLMs and tasks.
+   - Adaptive complexity evaluation for reasoning tasks.
+   - Centralized model management for handling LLM interactions.
 
 ---
 
-## Installation
+## **Installation**
 
-### **1. Clone the Repository**
+### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-username/reasonchain.git
+git clone https://github.com/sunnybedi990/reasonchain.git
 cd reasonchain
 ```
 
-### **2. Install Dependencies**
+### 2. Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### **3. Install as an Editable Package**
-Use the `-e` flag to install the package in "editable mode." This allows you to make changes to the library code and have those changes immediately reflected without needing to reinstall.
-
+### 3. Install as an Editable Package
 ```bash
 pip install -e .
 ```
-After running `pip install -e .`, you can verify the installation by importing the library:
+Verify installation:
 ```bash
 python -c "import reasonchain; print(reasonchain.__name__)"
 ```
-This should output:
+Expected output:
 ```plaintext
 reasonchain
 ```
 
-### **4. Configure API Keys**
-Create a `.env` file and add your API keys:
+### 4. Configure API Keys
+Create a `.env` file with your API keys:
 ```plaintext
 OPENAI_API_KEY=your_openai_api_key
 ```
 
 ---
 
-## Usage
+## **Usage**
 
-### **1. Initialize an Agent**
+### 1. Initialize an Agent
 ```python
 from reasonchain import Agent
 
 agent = Agent(name="ResearchBot", model_name="gpt-4", api_key="your_openai_api_key")
 ```
 
-### **2. Build a CoT Reasoning Pipeline**
+### 2. Build a CoT Reasoning Pipeline
 ```python
 from reasonchain.cot_pipeline import CoTPipeline
 
 pipeline = CoTPipeline(agent)
-pipeline.add_step("Understand the user's question.")
-pipeline.add_step("Fetch relevant data from the knowledge base.")
-pipeline.add_step("Generate a solution based on available information.")
+pipeline.add_step("Understand the user's query.")
+pipeline.add_step("Retrieve data from the knowledge base.")
+pipeline.add_step("Generate a detailed response.")
 ```
 
-### **3. Execute the Pipeline**
+### 3. Execute the Pipeline
 ```python
 response = pipeline.execute(agent.model_manager)
 print(response)
 ```
 
-### **4. Use Hybrid Pipelines**
-The Hybrid Pipeline dynamically selects CoT, ToT, or Parallel Chains based on task complexity.
+### 4. Use RAG to Enhance Reasoning
+Add context to reasoning using RAG integration:
 ```python
-from reasonchain.cot_pipeline import HybridCoTPipeline
+from reasonchain.rag.vector.add_to_vector_db import add_pdf_to_vector_db
+from reasonchain.rag.rag_main import query_vector_db
 
-pipeline = HybridCoTPipeline(agent)
-pipeline.add_step("Analyze the query.", complexity="low")
-pipeline.add_step("Retrieve data from long-term memory.", complexity="medium")
-pipeline.add_step("Generate and evaluate multiple solutions.", complexity="high")
-response = pipeline.execute(agent.model_manager)
+# Add a document to the vector database
+add_pdf_to_vector_db(
+    pdf_path="path/to/document.pdf",
+    db_path="vector_db.index",
+    db_type="faiss",
+    embedding_model="all-mpnet-base-v2"
+)
+
+# Query the database
+response = query_vector_db(
+    db_path="vector_db.index",
+    query="Summarize key financial data."
+)
 print(response)
 ```
 
----
-
-## Advanced Features
-
-### **1. Retrieval-Augmented Generation (RAG)**
-Enhance responses with RAG integration using FAISS:
+### 5. Collaborate with Multiple Agents
 ```python
-from reasonchain.memory import Memory
+from reasonchain.agent import MultiAgentSystem
 
-memory = Memory(embedding_model="all-MiniLM-L6-v2", use_gpu=False)
-query = "Explain the benefits of SQL indexing."
-context = memory.retrieve_long_term(query)
-print(f"Retrieved Context: {context}")
-```
+system = MultiAgentSystem()
+system.register_agent(Agent(name="AgentAlpha", role="extractor", model_name="gpt-4", api="openai"))
+system.register_agent(Agent(name="AgentBeta", role="analyst", model_name="llama3.1", api="ollama"))
 
-### **2. Model Manager**
-Centralized handling of LLMs for tasks like response generation and summarization:
-```python
-from reasonchain.model_manager import ModelManager
-
-model_manager = ModelManager(model_name="gpt-4", api_key="your_openai_api_key")
-response = model_manager.generate_response("How can I optimize my database?")
-print(response)
-
-# Summarize text
-summary = model_manager.summarize("Long text to summarize...")
-print(summary)
+task = {"name": "Analyze report", "description": "Extract insights and trends.", "priority": 5}
+system.add_task(task)
+system.assign_task()
 ```
 
 ---
 
-## Examples
+## **Examples**
 
-The `examples/` directory includes ready-to-run scripts:
-- **`simple_agent.py`**: Basic usage of ReasonChain.
-- **`faq_bot.py`**: Building an FAQ bot using CoT reasoning.
-- **`rag_pipeline_example.py`**: Example of RAG-based reasoning.
-- **`parellel_reasoning_example.py`**: Demonstrates parallel reasoning chains.
-- **`tree_of_thought_example.py`**: Implements Tree of Thought reasoning.
-- **`hybrid_reasoning_example.py`**: Combines CoT, ToT, and parallel reasoning.
+Explore the `examples/` directory for ready-to-run scripts:
+- **`simple_agent.py`**: Build a basic reasoning agent.
+- **`rag_pipeline_example.py`**: Use RAG for context-enhanced reasoning.
+- **`tree_of_thought_example.py`**: Implement Tree of Thought reasoning.
+- **`hybrid_reasoning_example.py`**: Dynamically combine reasoning methods.
 
 ---
 
-## Project Structure
+## **Project Structure**
 
 ```plaintext
 ReasonChain/
 │
 ├── reasonchain/                  # Core library
-│   ├── __init__.py               # Initialize the library
-│   ├── agent.py                  # Defines the Agent class
-│   ├── cot_pipeline.py           # Implements CoT pipeline
-│   ├── faiss_vector_db.py        # FAISS-based vector database
-│   ├── memory.py                 # Memory management
-│   ├── model_manager.py          # LLM interactions and summarization
-│   ├── rag_integration.py        # RAG pipeline integration
-│   ├── utils.py                  # Helper functions
-│   ├── enviornment.py            # External API interactions
+│   ├── __init__.py               # Library initializer
+│   ├── agent.py                  # Agent class
+│   ├── cot_pipeline.py           # CoT pipeline
+│   ├── rag/                      # RAG integration
+│       ├── vector/               # Vector database utilities
+│       ├── embeddings/           # Embedding management
+│       ├── llm_response/         # LLM response handlers
+│   ├── model_manager.py          # LLM management
+│   ├── memory.py                 # Memory handling
 │
-├── examples/                     # Examples for using ReasonChain
+├── examples/                     # Example scripts
 ├── tests/                        # Unit tests
 ├── setup.py                      # Installation script
-├── requirements.txt              # Project dependencies
+├── requirements.txt              # Dependencies
 ├── README.md                     # Documentation
-├── .env                          # Environment variables
+├── LICENSE                       # Licensing information
 ```
 
 ---
 
-## Key Features
+## **Key Features**
 
-1. **Dynamic Reasoning Pipelines**:
-   - Supports task-specific reasoning with customizable steps.
+1. **Dynamic Pipelines**:
+   - Choose from CoT, ToT, Parallel Chains, or Hybrid Pipelines.
 
-2. **RAG Integration**:
-   - Retrieve and incorporate external knowledge into reasoning.
+2. **Knowledge Integration**:
+   - Augment reasoning with RAG for external data retrieval.
 
-3. **LLM Extensibility**:
-   - Integrates with OpenAI GPT and other models seamlessly.
+3. **Scalable Memory**:
+   - Manage short-term and long-term memory effectively.
 
-4. **Scalable Design**:
-   - Modular architecture for easy expansion and collaboration.
+4. **LLM Compatibility**:
+   - Seamlessly work with OpenAI GPT, Llama, and similar models.
 
 ---
 
-## Future Enhancements
+## **Future Enhancements**
 
-1. **Pre-trained Reasoning Templates**:
-   - Include templates for domain-specific tasks (e.g., healthcare, finance).
+1. **Domain-Specific Templates**:
+   - Add pre-trained reasoning templates for specialized applications.
 
 2. **Agent Collaboration**:
-   - Enable agents to collaborate on complex tasks.
+   - Enable seamless teamwork between agents.
 
-3. **Fine-tuned Models**:
-   - Add support for fine-tuning and domain adaptation.
+3. **Extended RAG Support**:
+   - Integrate with Pinecone, Milvus, and more vector databases.
 
-4. **Scalable RAG Support**:
-   - Expand integrations to include Pinecone, Weaviate, and other vector stores.
+4. **Fine-Tuning Support**:
+   - Incorporate custom fine-tuned models for advanced reasoning.
 
 ---
 
-## Contributing
+## **Contributing**
 
-We welcome contributions! To contribute:
+Contributions are welcome! Follow these steps:
 1. Fork the repository.
-2. Create a new branch for your changes:
+2. Create a new branch:
    ```bash
-   git checkout -b feature/new-feature
+   git checkout -b feature/your-feature
    ```
 3. Commit your changes:
    ```bash
-   git commit -m "Add new feature"
+   git commit -m "Add your feature"
    ```
 4. Push to your fork:
    ```bash
-   git push origin feature/new-feature
+   git push origin feature/your-feature
    ```
 5. Open a pull request.
 
 ---
 
-## License
+## **License**
 
-This project is licensed under the MIT License. See the `LICENSE` file for details.
+This project is licensed under the MIT License. See the `LICENSE` file for more details.
