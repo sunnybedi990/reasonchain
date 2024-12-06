@@ -1,6 +1,6 @@
 # **ReasonChain**
 
-**ReasonChain** is a versatile AI reasoning library for building intelligent agents capable of advanced reasoning processes. It supports **Chain of Thought (CoT)**, **Tree of Thought (ToT)**, **Parallel Chains**, and **Retrieval-Augmented Generation (RAG)**, making it ideal for applications requiring dynamic problem-solving and contextual understanding.
+**ReasonChain** is a modular and extensible AI reasoning library for creating intelligent agents capable of executing advanced reasoning processes. It supports **Chain of Thought (CoT)** reasoning, **Tree of Thought (ToT)** reasoning, **Parallel Chains**, and integrates with **Retrieval-Augmented Generation (RAG)** for enhanced knowledge management.
 
 ---
 
@@ -11,12 +11,11 @@
    - Facilitates task decomposition, execution, and validation.
 
 2. **RAG Integration**:
-   - Incorporates external knowledge using vector databases like FAISS.
-   - Boosts agent reasoning with document-based context retrieval.
+   - Retrieve and augment responses using long-term memory stored in vector databases like FAISS.
 
-3. **Memory Management**:
-   - Short-term memory for reasoning session context.
-   - Persistent long-term memory for scalable storage using FAISS.
+3. **Short-term and Long-term Memory**:
+   - Session-based short-term memory for reasoning chains.
+   - Persistent long-term memory powered by FAISS.
 
 4. **LLM Compatibility**:
    - Supports OpenAI GPT, Llama, and other models for robust reasoning and summarization.
@@ -29,31 +28,30 @@
 
 ## **Installation**
 
-### 1. Clone the Repository
+### 1. Install via pip
+You can install **ReasonChain** directly from PyPI:
+```bash
+pip install reasonchain
+```
+
+### 2. Clone the Repository (for development)
+Alternatively, clone the repository to access examples and editable source code:
 ```bash
 git clone https://github.com/sunnybedi990/reasonchain.git
 cd reasonchain
 ```
 
-### 2. Install Dependencies
+### 3. Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Install as an Editable Package
+### 4. Install as an Editable Package
 ```bash
 pip install -e .
 ```
-Verify installation:
-```bash
-python -c "import reasonchain; print(reasonchain.__name__)"
-```
-Expected output:
-```plaintext
-reasonchain
-```
 
-### 4. Configure API Keys
+### 5. Configure API Keys
 Create a `.env` file with your API keys:
 ```plaintext
 OPENAI_API_KEY=your_openai_api_key
@@ -106,19 +104,6 @@ response = query_vector_db(
     query="Summarize key financial data."
 )
 print(response)
-```
-
-### 5. Collaborate with Multiple Agents
-```python
-from reasonchain.agent import MultiAgentSystem
-
-system = MultiAgentSystem()
-system.register_agent(Agent(name="AgentAlpha", role="extractor", model_name="gpt-4", api="openai"))
-system.register_agent(Agent(name="AgentBeta", role="analyst", model_name="llama3.1", api="ollama"))
-
-task = {"name": "Analyze report", "description": "Extract insights and trends.", "priority": 5}
-system.add_task(task)
-system.assign_task()
 ```
 
 ---
