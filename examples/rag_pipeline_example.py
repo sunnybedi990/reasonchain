@@ -1,34 +1,58 @@
 from reasonchain.memory import Memory
 from reasonchain.agent import Agent
-from reasonchain.rag_integration import RAGIntegration
+from reasonchain.rag.vector.add_to_vector_db import add_pdf_to_vector_db
+from reasonchain.rag.rag_main import query_vector_db
 from reasonchain.cot_pipeline import TreeOfThoughtPipeline
 import os
 from dotenv import load_dotenv
 
+# Load environment variables
 load_dotenv()
 
-# Initialize an agent with OpenAI GPT
+# Initialize Memory and Vector Database
+memory = Memory(embedding_provider='sentence_transformers',embedding_model="all-mpnet-base-v2", dimension=768, use_gpu=False)
+vector_db_path = "vector_db_sql.index"  # Define the vector DB path
+vector_db_type = "faiss"  # Use FAISS for vector storage
+
+# Populate vector database with SQL optimization knowledge
+print("\n=== Adding SQL Optimization Knowledge to Vector Database ===")
+add_pdf_to_vector_db(
+    pdf_path="sql_optimization_guide.pdf",  # Path to a PDF with SQL optimization tips
+    db_path=vector_db_path,
+    db_type=vector_db_type,
+    db_config=None,
+    embedding_provider="sentence_transformers",
+    embedding_model="all-mpnet-base-v2",
+    use_gpu=True
+)
+
+# Initialize the agent
 api_key = os.getenv("OPENAI_API_KEY")
-# Initialize memory and RAG integration
-memory = Memory(embedding_model="all-mpnet-base-v2",dimension=768, use_gpu=False)
-rag = RAGIntegration(memory=memory)
+agent = Agent(name="RAGBot", model_name="gpt-4o", api='openai', memory=memory)
 
-# Prepopulate long-term memory
-memory.store_long_term("SQL optimization involves using indexes and reducing joins.")
-memory.store_long_term("Avoid SELECT * for better query performance.")
-memory.store_long_term("Proper indexing can significantly improve SQL query execution times.")
-
-# Initialize agent and pipeline
-agent = Agent(name="RAGBot", model_name='gpt-4o', api_key=api_key, memory=memory)
+# Initialize the reasoning pipeline
 pipeline = TreeOfThoughtPipeline(agent=agent)
 
 # Define reasoning steps
 pipeline.add_step("Understand the user's question.")
-pipeline.add_step("Retrieve relevant context from memory.")
+pipeline.add_step("Retrieve relevant context from memory or vector database.")
 pipeline.add_step("Generate an answer based on the retrieved context.")
 
 # Execute reasoning with RAG integration
 query = "How do I optimize SQL queries?"
-augmented_query = rag.augment_with_context(query)
+print(f"\n=== Querying Vector Database ===")
+retrieved_context = query_vector_db(
+    db_path=vector_db_path,
+    db_type=vector_db_type,
+    query=query,
+    embedding_provider="sentence_transformers",
+    embedding_model="all-mpnet-base-v2",
+    top_k=5
+)
+
+# Combine the query with the retrieved context
+augmented_query = f"{query}\nRelevant Context: {retrieved_context}"
+
+# Execute the pipeline
 response = pipeline.execute(agent.model_manager)
-print(f"Final Output:\n{response}")
+print(f"\nFinal Output:\n{response}")
