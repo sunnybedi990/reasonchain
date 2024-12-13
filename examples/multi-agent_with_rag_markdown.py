@@ -22,11 +22,11 @@ multi_agent_system.register_agent(agent1)
 multi_agent_system.register_agent(agent2)
 multi_agent_system.register_agent(agent3)
 
-# Step 1: Add the Tesla Q-10 report to the vector database
-pdf_path = "pdfs/tsla-20240930-gen.pdf"  # Path to the Tesla Q-10 report
-vector_db_path = "vector_db_tesla.index"
+# Step 1: Add the Readme.md document to the vector database
+pdf_path = "Readme.md"  # Path to the Readme.md document
+vector_db_path = "vector_db_Readme.index"
 vector_db_type = "faiss"  # Can be faiss, milvus, etc.
-print("\n=== Adding Tesla Q-10 Report to Vector Database ===")
+print("\n=== Adding Readme.md to Vector Database ===")
 add_pdf_to_vector_db(
     file_path=pdf_path,
     db_path=vector_db_path,
@@ -39,8 +39,8 @@ add_pdf_to_vector_db(
 
 # Define a shared task
 shared_task = {
-    "name": "Analyze Tesla Q-10 Report",
-    "description": "Extract key financial highlights, analyze trends, and summarize insights from the Tesla Q-10 report.",
+    "name": "Analyze Readme Document",
+    "description": "Extract key points, identify patterns, and summarize critical information from the Readme.md document.",
     "priority": 5
 }
 
@@ -49,7 +49,7 @@ multi_agent_system.add_task(shared_task)
 
 # Step 2: Assign and execute task for AgentAlpha (Extractor)
 multi_agent_system.assign_task()
-query = "Extract financial highlights from the Tesla Q-10 report."
+query = "Identify key sections and extract main points from the Readme.md document."
 response_alpha = query_vector_db(
     db_path=vector_db_path,
     db_type=vector_db_type,
@@ -58,18 +58,17 @@ response_alpha = query_vector_db(
     embedding_provider="sentence_transformers",
     embedding_model="all-mpnet-base-v2",
     top_k=20,
-    
 )
 
-# Store the extracted financial highlights in shared memory
-store_in_shared_memory(agent1.shared_memory, "financial_highlights", response_alpha)
+# Store the extracted key points in shared memory
+store_in_shared_memory(agent1.shared_memory, "key_points", response_alpha)
 
 # Step 3: Collaboration setup for AgentBeta and AgentGamma
-task_description = "Analyze trends and summarize insights from Tesla's Q-10 report."
+task_description = "Analyze the extracted key points to identify patterns and summarize critical insights from the Readme.md document."
 # Collaborate on the task
 successful_agents = collaborate_on_task(
-    multi_agent_system, 
-    ["AgentBeta", "AgentGamma"], 
+    multi_agent_system,
+    ["AgentBeta", "AgentGamma"],
     task_description
 )
 
@@ -77,10 +76,10 @@ successful_agents = collaborate_on_task(
 print("\n=== Successful Collaboration ===")
 print(f"Agents involved: {', '.join(successful_agents)}")
 
-# Step 4: AgentBeta analyzes the financial highlights
-financial_highlights = retrieve_from_shared_memory(agent2.shared_memory, "financial_highlights")
-if financial_highlights:
-    analysis_query = f"Analyze trends and provide insights based on the following financial highlights: {financial_highlights}"
+# Step 4: AgentBeta analyzes the key points
+key_points = retrieve_from_shared_memory(agent2.shared_memory, "key_points")
+if key_points:
+    analysis_query = f"Analyze the following key points to identify patterns and provide critical insights: {key_points}"
     response_beta = assign_and_execute_task(agent2, analysis_query)
     store_in_shared_memory(agent2.shared_memory, "analysis", response_beta)
 else:
@@ -89,7 +88,7 @@ else:
 # Step 5: AgentGamma summarizes the analysis
 analysis_context = retrieve_from_shared_memory(agent3.shared_memory, "analysis")
 if analysis_context:
-    summary_query = f"Summarize the analysis into key insights for Tesla's Q-10 report: {analysis_context}"
+    summary_query = f"Summarize the analysis into a concise overview: {analysis_context}"
     response_gamma = assign_and_execute_task(agent3, summary_query)
 else:
     response_gamma = None

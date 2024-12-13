@@ -18,7 +18,7 @@ class PostInstallCommand(install):
 
 setup(
     name="reasonchain",
-    version="0.1.1",
+    version="0.1.9",
     description="A modular AI reasoning library for building intelligent agents.",
     long_description=open("Readme.md").read(),
     long_description_content_type="text/markdown",
@@ -26,11 +26,15 @@ setup(
     author="Baljindersingh Bedi",
     author_email="baljindersinghbedi409@gmail.com",
     license="MIT",
-    packages=find_packages(exclude=("tests", "examples")),
+    packages=find_packages(
+        include=["reasonchain", "reasonchain.*"],
+        exclude=["tests", "examples", "models", "pdfs"],
+    ),
     install_requires=[
         # Core Libraries
-        "numpy<2",
-        "scikit-learn",
+        "numpy>=1.21.0,<2.0.0",
+        "scipy>=1.8.0,<1.14.0",
+        "scikit-learn>=1.0.0",
         "torch",
         "tqdm",
         
@@ -48,6 +52,7 @@ setup(
         "openai",
         
         # Retrieval-Augmented Generation (RAG)
+        "matplotlib",
         "tabula-py",
         "camelot-py",
         "pymupdf",
@@ -58,7 +63,7 @@ setup(
         "pdf2image",
         "pytesseract",
         "pdfplumber",
-        "spacy",
+        #"spacy",
         "fastapi[standard]",
         "jpype1",
         "llama-index-core==0.12.2",
@@ -66,6 +71,14 @@ setup(
         "llama-index-readers-file",
         "python-dotenv",
         "opencv-python",
+        "datasets",
+        "pptx",
+        "moviepy",
+        "speech_recognition",
+        "ebooklib",
+        "bs4",
+        "docx"
+        
     ],
     python_requires=">=3.7",
     classifiers=[
@@ -81,4 +94,6 @@ setup(
     cmdclass={
         'install': PostInstallCommand,
     },
+    include_package_data=True,
+
 )

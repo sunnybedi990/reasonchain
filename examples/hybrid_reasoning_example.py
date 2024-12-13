@@ -1,7 +1,7 @@
 from reasonchain import Agent
 from reasonchain.cot_pipeline import HybridCoTPipeline
 from reasonchain.utils import dynamic_complexity_evaluator
-from reasonchain.model_manager import ModelManager
+from reasonchain.llm_models.model_manager import ModelManager
 
 # Initialize an agent with OpenAI GPT
 agent = Agent(name="HybridBot", model_name="gpt-4o", api='openai')

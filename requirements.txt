@@ -1,6 +1,7 @@
 # Core Libraries
-#numpy<2
-#scikit-learn
+numpy>=1.21.0,<2.0.0
+scipy>=1.8.0,<1.14.0
+scikit-learn>=1.0.0
 torch
 tqdm
 
@@ -19,6 +20,7 @@ groq
 openai
 
 # Retrieval-Augmented Generation (RAG)
+matplotlib
 tabula-py
 camelot-py
 pymupdf
@@ -29,7 +31,7 @@ layoutparser
 pdf2image
 pytesseract
 pdfplumber
-spacy
+#spacy
 fastapi[standard]
 jpype1
 llama-index-core==0.12.2
@@ -37,7 +39,13 @@ llama-parse
 llama-index-readers-file
 python-dotenv
 opencv-python
-
+datasets
+pptx
+moviepy
+speech_recognition
+ebooklib
+bs4
+docx
 # NLP Models
 # Uncomment the following line to download Spacy's English model
 # python -m spacy download en_core_web_sm

@@ -3,22 +3,94 @@ import openai
 from ollama import Client
 from groq import Groq
 from dotenv import load_dotenv
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from reasonchain.llm_models.fine_tune import fine_tune_model
 
 load_dotenv()
 
 class ModelManager:
-    def __init__(self, api='openai',model_name='gpt-4'):
+    def __init__(self, api='openai',model_name='gpt-4', custom_model_path=None):
         """
         Initialize the ModelManager to handle various APIs.
         :param model_name: Default LLM model name.
-        :param api_key: API key for the default LLM service.
+        :param custom_model_path: Path to a custom fine-tuned model (optional).
+
         """
         self.api = api
         self.model_name = model_name
-       # self.api_key = api_key or os.getenv("OPENAI_API_KEY")
-        
-        
+        self.custom_model_path = custom_model_path
+        self.custom_model = None
+        self.tokenizer = None
 
+        if api == 'custom' and custom_model_path:
+            self._load_custom_model(custom_model_path)      
+        
+    def _load_custom_model(self, custom_model_path):
+            """
+            Load a custom fine-tuned model and tokenizer.
+            :param custom_model_path: Path to the custom model directory.
+            """
+            try:
+                self.custom_model = AutoModelForCausalLM.from_pretrained(custom_model_path)
+                self.tokenizer = AutoTokenizer.from_pretrained(custom_model_path)
+                print(f"Custom model loaded from {custom_model_path}")
+            except Exception as e:
+                print(f"Error loading custom model: {e}")
+
+    @staticmethod
+    def download_model(model_name, save_path="models"):
+        """
+        Download a model from Hugging Face and save it locally.
+        :param model_name: Name of the model on Hugging Face (e.g., 'distilgpt2').
+        :param save_path: Directory to save the model.
+        """
+        os.makedirs(save_path, exist_ok=True)
+        model_path = os.path.join(save_path, model_name.replace("/", "_"))
+
+        try:
+            print(f"Downloading model: {model_name}")
+            model = AutoModelForCausalLM.from_pretrained(model_name)
+            tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+            # Save the model and tokenizer
+            model.save_pretrained(model_path)
+            tokenizer.save_pretrained(model_path)
+
+            print(f"Model downloaded and saved to: {model_path}")
+            return model_path
+        except Exception as e:
+            print(f"Error downloading model: {e}")
+            return None
+        
+    def fine_tune(self, train_dataset, val_dataset, output_dir, num_train_epochs=3, per_device_train_batch_size=4):
+        """
+        Wrapper to fine-tune the custom model using the fine_tune module.
+        """
+        if not self.custom_model or not self.tokenizer:
+            raise ValueError("Custom model or tokenizer not loaded.")
+        return fine_tune_model(
+            model=self.custom_model,
+            tokenizer=self.tokenizer,
+            train_dataset=train_dataset,
+            val_dataset=val_dataset,
+            output_dir=output_dir,
+            num_train_epochs=num_train_epochs,
+            per_device_train_batch_size=per_device_train_batch_size
+        )
+
+    def _generate_with_custom_model(self, prompt):
+        """
+        Generate a response using a custom fine-tuned model.
+        :param prompt: Input text prompt.
+        :return: Generated response.
+        """
+        try:
+            inputs = self.tokenizer(prompt, return_tensors="pt", padding=True, truncation=True)
+            outputs = self.custom_model.generate(**inputs, max_length=200)
+            return self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        except Exception as e:
+            print(f"Error generating response with custom model: {e}")
+            return "// No response from custom model."
     def generate_response(self, prompt, api=None, model_name=None):
         """
         Generate a response using the specified API.
@@ -36,6 +108,8 @@ class ModelManager:
                 return self._generate_with_ollama(prompt, selected_model)
             elif api == "groq":
                 return self._generate_with_groq(prompt, selected_model)
+            elif api == 'custom' and self.custom_model:
+                return self._generate_with_custom_model(prompt)
             else:
                 raise ValueError("Unsupported API specified.")
         except Exception as e:

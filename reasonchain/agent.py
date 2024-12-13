@@ -1,5 +1,5 @@
 from .memory import Memory, SharedMemory
-from .model_manager import ModelManager
+from .llm_models.model_manager import ModelManager
 import logging
 import time
 import heapq

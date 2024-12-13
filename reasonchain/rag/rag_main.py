@@ -1,7 +1,7 @@
 import argparse
 from reasonchain.rag.vector.VectorDB import VectorDB
 from reasonchain.rag.vector.add_to_vector_db import add_pdf_to_vector_db
-from reasonchain.model_manager import ModelManager
+from reasonchain.llm_models.model_manager import ModelManager
 from reasonchain.rag.llm_response.chart_parser import parse_response_and_generate_chart
 from reasonchain.rag.llm_response.prompt import Prompt
 

@@ -5,19 +5,31 @@ include Readme.md
 include LICENSE
 include MANIFEST.in
 
-# Include all Python source files
-recursive-include reasonchain *.py
-recursive-include examples *.py
-recursive-include tests *
+# Include YAML and Markdown files
+include reasonchain/rag/*.yaml
+include reasonchain/rag/*.md
 
-# Exclude unwanted files and directories
+# Recursively include all necessary subdirectories
+recursive-include reasonchain/rag/adapters *
+recursive-include reasonchain/rag/charts *
+recursive-include reasonchain/rag/document_extract *
+recursive-include reasonchain/rag/embeddings *
+recursive-include reasonchain/rag/llm_response *
+recursive-include reasonchain/rag/vector *
+
+# Recursively include Python files
+recursive-include reasonchain *.py
+
+# Exclude specific files
 exclude vector_db_tesla.pkl
 exclude vector_db_tesla.index
 exclude steps.txt
 exclude .pypirc
 exclude .env
 
-
-# Exclude directories
-prune pdfs
+# Exclude unwanted directories
 prune reasonchain/__pycache__
+prune tests
+prune examples
+prune models
+prune pdfs

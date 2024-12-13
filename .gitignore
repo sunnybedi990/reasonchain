@@ -47,3 +47,5 @@ steps.txt
 pdfs/
 *.index
 *.pkl
+models/
+fine_tuned_model/

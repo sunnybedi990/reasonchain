@@ -1,50 +1,10 @@
 import os
 from reasonchain.rag.vector.VectorDB import VectorDB
-from pdf2image import convert_from_path
-from dotenv import load_dotenv
-from reasonchain.rag.document_extract.pdf_extractor import (
-    extract_text_with_fitz,
-    extract_tables,
-    extract_figures,
-    process_figure_with_clip,
-    chunk_text_advanced,
-    preprocess_text,
-    chunk_text,
-    chunk_text_by_semantics
-)
+from reasonchain.rag.document_extract.pdf_extractor import process_figure_with_clip
+from reasonchain.rag.document_extract.extractor_handler import extract_data
 
-
-# Load environment variables for LlamaParse API access
-load_dotenv()
-
-
-# LlamaParse setup
-try:
-    from llama_parse import LlamaParse
-    from llama_index.core import SimpleDirectoryReader
-    llama_available = True
-except ImportError:
-    llama_available = False
-
-
-def extract_pdf_with_llama(pdf_path):
-    """Extract tables and text using LlamaParse."""
-    parser = LlamaParse(result_type="text")  # Try using plain_text for broader content capture
-    file_extractor = {".pdf": parser}
-    documents = SimpleDirectoryReader(input_files=[pdf_path], file_extractor=file_extractor).load_data()
-    
-    # Convert each document to a string and join them
-
-    parsed_texts = [str(doc) for doc in documents]
-    #combined_text = "\n".join(parsed_texts)  # Join all document parts into one complete text
-    print(parsed_texts)
-
-
-    return parsed_texts  # Return the fully combined text
-
-    
 def add_pdf_to_vector_db(
-    pdf_path,
+    file_path,
     db_path='vector_db.index',
     db_type='faiss',
     db_config='true',
@@ -54,30 +14,37 @@ def add_pdf_to_vector_db(
     use_llama=False,
     api_key=None
 ):
+    
     """
-    Processes a PDF, extracts text and tables, and adds them to a vector database.
+    Processes a file, extracts content, and adds it to a vector database.
+
+    Args:
+        file_path (str): Path to the file to process.
+        db_path (str): Path to the vector database index.
+        db_type (str): Type of vector database (e.g., "faiss").
+        db_config (str): Configuration for the vector database.
+        embedding_provider (str): Embedding provider to use.
+        embedding_model (str): Embedding model to use.
+        use_gpu (bool): Whether to use GPU for embedding.
+        use_llama (bool): Whether to use LlamaParse for PDF extraction.
+        api_key (str): API key for vector database if required.
     """
     try:
-        # Extract content from PDF
-        if use_llama and llama_available:
-            print("Using LlamaParse for document extraction...")
-            parsed_texts = extract_pdf_with_llama(pdf_path)
-        else:
-            print("Using regular extraction methods...")
-            print("Extracting content...")
-            full_text = extract_text_with_fitz(pdf_path)
-            tables = extract_tables(pdf_path)
-            figures = extract_figures(pdf_path)
+        
+        extracted_data = extract_data(file_path, use_llama)
+        parsed_texts = extracted_data.get("text", [])
+        tables = extracted_data.get("tables", [])
+        figures = extracted_data.get("figures", [])
 
-            parsed_texts = chunk_text_by_semantics(preprocess_text(full_text))
-            parsed_texts += tables
-            # Save figures (Optional: Store as metadata)
-            
-        if not parsed_texts:
-            print("No content extracted from the PDF.")
+        if not parsed_texts and not tables:
+            print("No content extracted from the file.")
             return
 
-        print(f"Extracted {len(parsed_texts)} items from the PDF.")
+        # Combine text and tables for embedding
+        all_content = parsed_texts + [str(table) for table in tables]
+
+
+        print(f"Extracted {len(all_content)} items from the PDF.")
 
         # Initialize the vector database
         db = VectorDB(
@@ -98,7 +65,7 @@ def add_pdf_to_vector_db(
                 caption, clip_embedding = process_figure_with_clip(figure, i)
 
                 # Append caption to parsed_texts
-                parsed_texts.append(caption)
+                all_content.append(caption)
 
                 # Add figure embedding directly to the vector database
                 if clip_embedding is not None:
@@ -107,7 +74,7 @@ def add_pdf_to_vector_db(
 
 
         # Add embeddings to the vector database
-        db.add_embeddings(parsed_texts)
+        db.add_embeddings(all_content)
 
         # Save the FAISS index if applicable
         if db_type == "faiss":
