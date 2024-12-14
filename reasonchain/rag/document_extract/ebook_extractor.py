@@ -1,5 +1,4 @@
-from ebooklib import epub
-from bs4 import BeautifulSoup
+from reasonchain.utils.lazy_imports import ebooklib, bs4
 
 def extract_ebook_data(file_path):
     """
@@ -16,8 +15,8 @@ def extract_ebook_data(file_path):
         text = []
 
         for item in book.get_items():
-            if item.get_type() == epub.ITEM_DOCUMENT:
-                soup = BeautifulSoup(item.get_content(), "html.parser")
+            if item.get_type() == ebooklib.epub.ITEM_DOCUMENT:
+                soup = bs4.BeautifulSoup(item.get_content(), "html.parser")
                 text.append(soup.get_text(separator="\n"))
 
         return {"text": text, "tables": [], "figures": []}

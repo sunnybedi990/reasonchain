@@ -1,6 +1,6 @@
 from reasonchain.agent import Agent, MultiAgentSystem
 from reasonchain.memory import Memory
-from reasonchain.utils import (
+from reasonchain.task_utils import (
     assign_and_execute_task,
     store_in_shared_memory,
     retrieve_from_shared_memory,

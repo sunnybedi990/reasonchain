@@ -1,24 +1,8 @@
 from setuptools import setup, find_packages
-from setuptools.command.install import install
-import os
-import subprocess
-
-
-class PostInstallCommand(install):
-    """Custom post-installation for downloading Spacy model."""
-    def run(self):
-        # Run the original install code
-        install.run(self)
-        try:
-            # Automatically download the Spacy English model
-            subprocess.check_call([os.sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
-        except Exception as e:
-            print(f"Error downloading Spacy model: {e}")
-
 
 setup(
     name="reasonchain",
-    version="0.1.9",
+    version="0.1.95",
     description="A modular AI reasoning library for building intelligent agents.",
     long_description=open("Readme.md").read(),
     long_description_content_type="text/markdown",
@@ -37,49 +21,56 @@ setup(
         "scikit-learn>=1.0.0",
         "torch",
         "tqdm",
-        
-        # Database Libraries
-        "faiss-cpu",
-        "pymilvus",
-        "pinecone",
-        "qdrant-client",
-        "weaviate-client",
-        
-        # LLM Integration
-        "transformers",
-        "ollama",
-        "groq",
-        "openai",
-        
-        # Retrieval-Augmented Generation (RAG)
-        "matplotlib",
-        "tabula-py",
-        "camelot-py",
-        "pymupdf",
-        "sentence-transformers",
-        "tensorflow_hub",
-        "gensim",
-        "layoutparser",
-        "pdf2image",
-        "pytesseract",
-        "pdfplumber",
-        #"spacy",
-        "fastapi[standard]",
-        "jpype1",
-        "llama-index-core==0.12.2",
-        "llama-parse",
-        "llama-index-readers-file",
-        "python-dotenv",
-        "opencv-python",
-        "datasets",
-        "pptx",
-        "moviepy",
-        "speech_recognition",
-        "ebooklib",
-        "bs4",
-        "docx"
-        
     ],
+      extras_require={
+        "core": [
+            "numpy>=1.21.0,<2.0.0",
+            "scipy>=1.8.0,<1.14.0",
+            "scikit-learn>=1.0.0",
+            "torch",
+            "tqdm",
+        ],
+        "database": [
+            "faiss-cpu",
+            "pymilvus",
+            "pinecone",
+            "qdrant-client",
+            "weaviate-client",
+        ],
+        "llm": [
+            "transformers",
+            "ollama",
+            "groq",
+            "openai",
+        ],
+        "rag": [
+            "matplotlib",
+            "tabula-py",
+            "camelot-py",
+            "pymupdf",
+            "sentence-transformers",
+            "tensorflow_hub",
+            "gensim",
+            "layoutparser",
+            "pdf2image",
+            "pytesseract",
+            "pdfplumber",
+            "fastapi[standard]",
+            "jpype1",
+            "llama-index-core==0.12.2",
+            "llama-parse",
+            "llama-index-readers-file",
+            "python-dotenv",
+            "opencv-python",
+            "datasets",
+            "python-pptx",
+            "moviepy",
+            "speech_recognition",
+            "ebooklib",
+            "bs4",
+            "python-docx",
+        ],
+    },
     python_requires=">=3.7",
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -91,9 +82,7 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    cmdclass={
-        'install': PostInstallCommand,
-    },
+
     include_package_data=True,
 
 )

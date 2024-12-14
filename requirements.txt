@@ -40,12 +40,13 @@ llama-index-readers-file
 python-dotenv
 opencv-python
 datasets
-pptx
+python-pptx
 moviepy
-speech_recognition
+SpeechRecognition
 ebooklib
 bs4
-docx
+python-docx
+whisper
 # NLP Models
 # Uncomment the following line to download Spacy's English model
 # python -m spacy download en_core_web_sm

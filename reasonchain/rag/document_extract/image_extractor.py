@@ -1,4 +1,4 @@
-from pytesseract import image_to_string
+from reasonchain.utils.lazy_imports import  pytesseract
 from PIL import Image
 
 def extract_image_data(file_path):
@@ -12,7 +12,7 @@ def extract_image_data(file_path):
         dict: A dictionary with keys `text`, `tables`, and `figures`.
     """
     try:
-        text = image_to_string(Image.open(file_path))
+        text = pytesseract.image_to_string(Image.open(file_path))
         return {"text": [text], "tables": [], "figures": [file_path]}
 
     except Exception as e:

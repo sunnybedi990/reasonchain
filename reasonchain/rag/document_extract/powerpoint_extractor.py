@@ -1,4 +1,4 @@
-from pptx import Presentation
+from reasonchain.utils.lazy_imports import pptx
 import os
 
 def extract_presentation_data(file_path, download_path="./presentation_images"):
@@ -14,7 +14,7 @@ def extract_presentation_data(file_path, download_path="./presentation_images"):
     """
     try:
         os.makedirs(download_path, exist_ok=True)
-        prs = Presentation(file_path)
+        prs = pptx.Presentation(file_path)
         text = []
         figures = []
 

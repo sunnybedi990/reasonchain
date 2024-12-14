@@ -1,6 +1,4 @@
-import weaviate
-import os
-import weaviate.classes as wvc
+from reasonchain.utils.lazy_imports import weaviate, os
 
 def connect_to_weaviate_cloud(cluster_url, api_key):
     """
@@ -12,7 +10,7 @@ def connect_to_weaviate_cloud(cluster_url, api_key):
     try:
         client = weaviate.Client(
             url=cluster_url,
-            auth_client_secret=wvc.AuthApiKey(api_key),
+            auth_client_secret=weaviate.classes.AuthApiKey(api_key),
         )
         # Check connection
         if not client.is_ready():

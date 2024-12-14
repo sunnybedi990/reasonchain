@@ -1,8 +1,5 @@
-import os
 import re
-import spacy
-from spacy.cli import download
-from transformers import CLIPProcessor, CLIPModel
+from reasonchain.utils.lazy_imports import transformers, spacy, os
 from PIL import Image
 import io
 
@@ -13,7 +10,7 @@ def load_spacy_model(model_name="en_core_web_sm"):
         return spacy.load(model_name)
     except OSError:
         print(f"Spacy model '{model_name}' not found. Downloading...")
-        download(model_name)
+        spacy.cli.download(model_name)
         return spacy.load(model_name)
 
 
@@ -137,8 +134,8 @@ def save_chunks_to_file(chunks, method_name, output_dir="parsed_chunks"):
 
 def initialize_clip_model():
     """Load the CLIP model and processor."""
-    clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
-    clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+    clip_model = transformers.CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+    clip_processor = transformers.CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
     return clip_model, clip_processor
 
 

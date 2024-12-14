@@ -1,4 +1,4 @@
-from docx import Document
+from reasonchain.utils.lazy_imports import docx
 import os
 
 
@@ -14,7 +14,7 @@ def extract_word_data(file_path, download_path="./word_images"):
         dict: A dictionary with keys `text`, `tables`, and `figures`.
     """
     try:
-        document = Document(file_path)
+        document = docx.Document(file_path)
         os.makedirs(download_path, exist_ok=True)
 
         # Extract text

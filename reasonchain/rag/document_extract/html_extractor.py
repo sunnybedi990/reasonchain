@@ -1,7 +1,4 @@
-from bs4 import BeautifulSoup
-import pandas as pd
-import os
-import requests
+from reasonchain.utils.lazy_imports import bs4, pandas as pd, requests, os
 
 def extract_html_data(file_path, download_path="./html_images"):
     """
@@ -19,7 +16,7 @@ def extract_html_data(file_path, download_path="./html_images"):
 
         # Read and parse the HTML file
         with open(file_path, "r", encoding="utf-8") as file:
-            soup = BeautifulSoup(file, "html.parser")
+            soup = bs4.BeautifulSoup(file, "html.parser")
 
         # Extract text
         text = soup.get_text(separator="\n").strip()

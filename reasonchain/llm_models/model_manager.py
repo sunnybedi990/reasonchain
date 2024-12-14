@@ -1,12 +1,8 @@
 import os
-import openai
-from ollama import Client
-from groq import Groq
-from dotenv import load_dotenv
-from transformers import AutoModelForCausalLM, AutoTokenizer
 from reasonchain.llm_models.fine_tune import fine_tune_model
+from reasonchain.utils.lazy_imports import os, openai, ollama, groq, dotenv, transformers
 
-load_dotenv()
+dotenv.load_dotenv()
 
 class ModelManager:
     def __init__(self, api='openai',model_name='gpt-4', custom_model_path=None):
@@ -31,8 +27,8 @@ class ModelManager:
             :param custom_model_path: Path to the custom model directory.
             """
             try:
-                self.custom_model = AutoModelForCausalLM.from_pretrained(custom_model_path)
-                self.tokenizer = AutoTokenizer.from_pretrained(custom_model_path)
+                self.custom_model = transformers.AutoModelForCausalLM.from_pretrained(custom_model_path)
+                self.tokenizer = transformers.AutoTokenizer.from_pretrained(custom_model_path)
                 print(f"Custom model loaded from {custom_model_path}")
             except Exception as e:
                 print(f"Error loading custom model: {e}")
@@ -49,8 +45,8 @@ class ModelManager:
 
         try:
             print(f"Downloading model: {model_name}")
-            model = AutoModelForCausalLM.from_pretrained(model_name)
-            tokenizer = AutoTokenizer.from_pretrained(model_name)
+            model = transformers.AutoModelForCausalLM.from_pretrained(model_name)
+            tokenizer = transformers.AutoTokenizer.from_pretrained(model_name)
 
             # Save the model and tokenizer
             model.save_pretrained(model_path)
@@ -157,7 +153,7 @@ class ModelManager:
         :param model: Ollama model to use.
         :return: Generated response.
         """
-        ollama_client = Client(host='http://localhost:11434')  # Ollama local client
+        ollama_client = ollama.Client(host='http://localhost:11434')  # Ollama local client
         try:
             response = ollama_client.chat(
                 model=model,
@@ -179,7 +175,7 @@ class ModelManager:
         :param model: Groq model to use.
         :return: Generated response.
         """
-        groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        groq_client = groq.Groq(api_key=os.getenv("GROQ_API_KEY"))
         try:
             response = groq_client.chat.completions.create(
                 model=model,

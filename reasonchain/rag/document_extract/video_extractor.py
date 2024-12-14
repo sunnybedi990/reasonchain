@@ -1,5 +1,5 @@
-from moviepy.editor import VideoFileClip
-
+from reasonchain.utils.lazy_imports import moviepy
+from PIL import Image
 def extract_video_data(file_path):
     """
     Extract frames and text from video files.
@@ -11,7 +11,7 @@ def extract_video_data(file_path):
         dict: A dictionary with keys `text`, `tables`, and `figures`.
     """
     try:
-        clip = VideoFileClip(file_path)
+        clip = moviepy.video.io.VideoFileClip(file_path)
         figures = []
 
         for i, frame in enumerate(clip.iter_frames(fps=1)):  # 1 frame per second

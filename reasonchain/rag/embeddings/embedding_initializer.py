@@ -1,12 +1,8 @@
-from sentence_transformers import SentenceTransformer
-import openai
+from reasonchain.utils.lazy_imports import sentence_transformers, openai, transformers, tensorflow_hub, gensim_downloader, dotenv, os
 from reasonchain.rag.embeddings.embedding_config import get_embedding_config
-from transformers import AutoModel, AutoTokenizer
-import tensorflow_hub as hub
-import gensim.downloader as api
-import os
-from dotenv import load_dotenv
-load_dotenv()
+
+dotenv.load_dotenv()  # Load environment variables
+
 
 def initialize_embedding_model(provider, model_name, api_key=None):
     """Initializes the embedding model based on the provider and model name."""
@@ -18,7 +14,7 @@ def initialize_embedding_model(provider, model_name, api_key=None):
 
     if provider == "sentence_transformers":
         # Sentence Transformers
-        model = SentenceTransformer(model_name)
+        model = sentence_transformers.SentenceTransformer(model_name)
         is_callable = False
 
     elif provider == "openai":
@@ -32,35 +28,35 @@ def initialize_embedding_model(provider, model_name, api_key=None):
 
     elif provider == "hugging_face":
         # Hugging Face Transformers
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
-        hf_model = AutoModel.from_pretrained(model_name)
+        tokenizer = transformers.AutoTokenizer.from_pretrained(model_name)
+        hf_model = transformers.AutoModel.from_pretrained(model_name)
         model = lambda text: hf_model(**tokenizer(text, return_tensors="pt"))[0].mean(dim=1).detach().numpy()
         is_callable = True
 
     elif provider == "google_use":
         # Google Universal Sentence Encoder
-        model = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
+        model = tensorflow_hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
         is_callable = True
 
     elif provider == "elmo":
         # ELMo model
-        model = hub.load("https://tfhub.dev/google/elmo/3")
+        model = tensorflow_hub.load("https://tfhub.dev/google/elmo/3")
         is_callable = True
 
     elif provider == "fasttext":
         # FastText model with Gensim
-        model = api.load(model_name)
+        model = gensim_downloader.load(model_name)
         is_callable = True
 
     elif provider == "glove":
         # GloVe model with Gensim
-        model = api.load(model_name)
+        model = gensim_downloader.load(model_name)
         is_callable = True
     
     elif provider in ["bert", "albert", "xlnet", "gpt2", "t5"]:
         # Hugging Face BERT, ALBERT, XLNet, GPT-2, T5 models
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
-        hf_model = AutoModel.from_pretrained(model_name)
+        tokenizer = transformers.AutoTokenizer.from_pretrained(model_name)
+        hf_model = transformers.AutoModel.from_pretrained(model_name)
         model = lambda text: hf_model(**tokenizer(text, return_tensors="pt"))[0].mean(dim=1).detach().numpy()
         is_callable = True
 

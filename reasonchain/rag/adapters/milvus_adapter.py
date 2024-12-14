@@ -1,5 +1,4 @@
-import os
-from pymilvus import connections, FieldSchema, CollectionSchema, DataType, Collection
+from reasonchain.utils.lazy_imports import os, pymilvus
 
 class MilvusVectorDB:
     def __init__(self, collection_name, dimension=768, host="localhost", port="19530"):
@@ -9,7 +8,7 @@ class MilvusVectorDB:
         # Use the file name (without extension) as the collection name
         self.collection_name = collection_name
         self.dimension = dimension
-        connections.connect(host=host, port=port)
+        pymilvus.connections.connect(host=host, port=port)
         self.collection = self._initialize_or_load_collection()
 
     def _initialize_or_load_collection(self):
@@ -17,11 +16,11 @@ class MilvusVectorDB:
         Initialize or load the collection in Milvus.
         """
         fields = [
-            FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, auto_id=True),
-            FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=self.dimension),
+            pymilvus.FieldSchema(name="id", dtype=pymilvus.DataType.INT64, is_primary=True, auto_id=True),
+            pymilvus.FieldSchema(name="embedding", dtype=pymilvus.DataType.FLOAT_VECTOR, dim=self.dimension),
         ]
-        schema = CollectionSchema(fields)
-        return Collection(name=self.collection_name, schema=schema)
+        schema = pymilvus.CollectionSchema(fields)
+        return pymilvus.Collection(name=self.collection_name, schema=schema)
 
     def add_embeddings(self, ids, embeddings):
         """

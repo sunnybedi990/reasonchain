@@ -1,7 +1,4 @@
-import numpy as np
-import faiss
-import pickle
-import os
+from reasonchain.utils.lazy_imports import numpy as np, faiss, pickle, os
 
 class FAISSVectorDB:
     def __init__(self, use_gpu=True, dimension=768):

@@ -1,4 +1,4 @@
-import pandas as pd
+from reasonchain.utils.lazy_imports import pandas as pd
 
 def extract_excel_data(file_path):
     """Extract data from an Excel file."""

@@ -1,6 +1,4 @@
-import os
-from pinecone import Pinecone, ServerlessSpec
-import numpy as np
+from reasonchain.utils. lazy_imports import os, pinecone, numpy as np
 import re
 
 def sanitize_index_name(name):
@@ -24,7 +22,7 @@ class PineconeVectorDB:
         print(f"Initializing Pinecone index '{index_name}' with dimension: {dimension}")
 
         # Initialize Pinecone client
-        self.pinecone = Pinecone(api_key=api_key)
+        self.pinecone = pinecone.Pinecone(api_key=api_key)
 
         # Check if the index exists; create if it doesn't
         if index_name not in self.pinecone.list_indexes().names():
@@ -33,7 +31,7 @@ class PineconeVectorDB:
                 name=index_name,
                 dimension=dimension,
                 metric="cosine",  # Metric can be 'euclidean', 'cosine', or 'dotproduct'
-                spec=ServerlessSpec(
+                spec=pinecone.ServerlessSpec(
                     cloud="aws",  # Specify the cloud provider
                     region=environment  # Specify the environment/region
                 )

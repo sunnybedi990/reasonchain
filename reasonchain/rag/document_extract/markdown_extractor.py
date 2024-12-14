@@ -1,6 +1,6 @@
 import os
 import re
-import pandas as pd
+from reasonchain.utils.lazy_imports import pandas as pd
 from io import StringIO  # Correct import for string-based file objects
 
 

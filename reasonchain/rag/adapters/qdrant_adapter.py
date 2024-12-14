@@ -1,8 +1,9 @@
-from qdrant_client import QdrantClient
-from qdrant_client.models import VectorParams, Distance, PointStruct
+from reasonchain.utils.lazy_imports import qdrant_client
+
 import os
 
 class QdrantVectorDB:
+
     def __init__(self, collection_name="vector_collection", dimension=768, mode="local", host="localhost", port=6333, path=None, api_key=None):
         """
         Initialize Qdrant client and collection.
@@ -19,14 +20,14 @@ class QdrantVectorDB:
         self.dimension = dimension
         
         if mode == "local":
-            self.client = QdrantClient(host=host, port=port)
+            self.client = qdrant_client.QdrantClient(host=host, port=port)
         elif mode == "cloud":
             if not api_key:
                 raise ValueError("API key is required for cloud mode.")
             cluster_url = os.getenv('QDRANT_CLUSTER_URL')
-            self.client = QdrantClient(url=cluster_url,api_key=api_key)
+            self.client = qdrant_client.QdrantClient(url=cluster_url,api_key=api_key)
         elif mode == "memory":
-            self.client = QdrantClient(":memory:")
+            self.client = qdrant_client.QdrantClient(":memory:")
         else:
             raise ValueError(f"Unsupported mode: {mode}")
 
@@ -44,7 +45,7 @@ class QdrantVectorDB:
                     # Create the collection only if it doesn't exist
                     self.client.create_collection(
                         collection_name=self.collection_name,
-                        vectors_config=VectorParams(size=self.dimension, distance=Distance.COSINE),
+                        vectors_config=qdrant_client.models.VectorParams(size=self.dimension, distance=qdrant_client.models.Distance.COSINE),
                     )
                     print(f"Collection '{self.collection_name}' created.")
                 else:
@@ -68,7 +69,7 @@ class QdrantVectorDB:
             metadata = [{}] * len(ids)  # Default to empty metadata for each vector
 
         points = [
-            PointStruct(id=ids[i], vector=embeddings[i], payload=metadata[i])
+            qdrant_client.models.PointStruct(id=ids[i], vector=embeddings[i], payload=metadata[i])
             for i in range(len(ids))
         ]
         self.client.upsert(collection_name=self.collection_name, points=points)

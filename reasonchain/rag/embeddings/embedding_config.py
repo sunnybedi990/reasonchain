@@ -1,4 +1,3 @@
-# config.py
 
 embedding_configs = {
     "sentence_transformers": {

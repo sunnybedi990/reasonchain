@@ -1,6 +1,6 @@
 from reasonchain import Agent
 from reasonchain.cot_pipeline import HybridCoTPipeline
-from reasonchain.utils import dynamic_complexity_evaluator
+from reasonchain.task_utils import dynamic_complexity_evaluator
 from reasonchain.llm_models.model_manager import ModelManager
 
 # Initialize an agent with OpenAI GPT

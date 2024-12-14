@@ -1,4 +1,4 @@
-from transformers import Trainer, TrainingArguments
+from reasonchain.utils.lazy_imports import transformers
 
 def fine_tune_model(model, tokenizer, train_dataset, val_dataset=None, output_dir="fine_tuned_model", num_train_epochs=3, per_device_train_batch_size=4):
     """
@@ -19,7 +19,7 @@ def fine_tune_model(model, tokenizer, train_dataset, val_dataset=None, output_di
     try:
         # Dynamically set evaluation strategy based on val_dataset
         evaluation_strategy = "epoch" if val_dataset is not None else "no"
-        training_args = TrainingArguments(
+        training_args = transformers.TrainingArguments(
             output_dir=output_dir,
             eval_strategy=evaluation_strategy,
             learning_rate=2e-5,
@@ -30,7 +30,7 @@ def fine_tune_model(model, tokenizer, train_dataset, val_dataset=None, output_di
             remove_unused_columns=False
         )
 
-        trainer = Trainer(
+        trainer = transformers.Trainer(
             model=model,
             args=training_args,
             train_dataset=train_dataset,
