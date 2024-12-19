@@ -95,11 +95,15 @@ def initialize_vector_db(db_type, db_config=None, embedding_dimension=None, db_p
             api_key=api_key
         )
     elif db_type == "weaviate":
+        api_key = db_config.get("api_key") or os.getenv("PINECONE_API_KEY")
+        WEAVIATE_CLUSTER_URL = db_config.get("WEAVIATE_CLUSTER_URL") or os.getenv("WEAVIATE_CLUSTER_URL")
         return WeaviateVectorDB(
             mode=db_config["mode"],
             host=db_config["host"],
             class_name=db_config["class_name"],
             dimension=embedding_dimension,
+            api_key=api_key,
+            WEAVIATE_CLUSTER_URL=WEAVIATE_CLUSTER_URL
         )
     else:
         raise ValueError(f"Unsupported database type: {db_type}")
@@ -153,6 +157,7 @@ class VectorDB:
 
         except Exception as e:
             raise ValueError(f"Error generating embedding: {e}")
+        
     def process_clip_embedding(self, clip_embedding, dimension):
         """
         Adapts a CLIP embedding to match the dimension of text embeddings.

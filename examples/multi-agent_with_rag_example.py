@@ -34,6 +34,7 @@ add_pdf_to_vector_db(
     db_config=None,
     embedding_provider="sentence_transformers",
     embedding_model="all-mpnet-base-v2",
+    use_llama=False,
     use_gpu=True
 )
 

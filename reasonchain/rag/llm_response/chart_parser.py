@@ -1,5 +1,5 @@
 import json
-import matplotlib.pyplot as plt
+from reasonchain.utils.lazy_imports import matplotlib
 import re
 import os
 import uuid
@@ -113,49 +113,49 @@ def generate_chart(chart_type, chart_title, x_axis_title, y_axis_title, series_d
     Generate and save a chart based on the type and provided data.
     """
     try:
-        plt.figure(figsize=(12, 8))
+        matplotlib.pyplot.figure(figsize=(12, 8))
 
         if chart_type == "line":
             for series in series_data:
                 x_values = [dp["x"] for dp in series["data"]]
                 y_values = [dp["y"] for dp in series["data"]]
-                plt.plot(x_values, y_values, label=series["label"], marker="o", linewidth=2)
+                matplotlib.pyplot.plot(x_values, y_values, label=series["label"], marker="o", linewidth=2)
         elif chart_type == "bar":
             x = range(len(series_data[0]["data"]))
             width = 0.2
             for i, series in enumerate(series_data):
                 y_values = [dp["y"] for dp in series["data"]]
                 x_offset = [p + i * width for p in x]
-                plt.bar(x_offset, y_values, width=width, label=series["label"])
-            plt.xticks([p + width for p in x], [dp["x"] for dp in series_data[0]["data"]])
+                matplotlib.pyplot.bar(x_offset, y_values, width=width, label=series["label"])
+            matplotlib.pyplot.xticks([p + width for p in x], [dp["x"] for dp in series_data[0]["data"]])
         elif chart_type == "pie":
             labels = [dp["x"] for dp in series_data[0]["data"]]
             values = [dp["y"] for dp in series_data[0]["data"]]
-            plt.pie(values, labels=labels, autopct="%1.1f%%", startangle=140)
+            matplotlib.pyplot.pie(values, labels=labels, autopct="%1.1f%%", startangle=140)
         elif chart_type == "scatter":
             for series in series_data:
                 x_values = [dp["x"] for dp in series["data"]]
                 y_values = [dp["y"] for dp in series["data"]]
-                plt.scatter(x_values, y_values, label=series["label"])
+                matplotlib.pyplot.scatter(x_values, y_values, label=series["label"])
         else:
             raise ValueError(f"Unsupported chart type: {chart_type}")
 
         # Customize chart
-        plt.title(chart_title, fontsize=16)
-        plt.xlabel(x_axis_title, fontsize=12)
-        plt.ylabel(y_axis_title, fontsize=12)
+        matplotlib.pyplot.title(chart_title, fontsize=16)
+        matplotlib.pyplot.xlabel(x_axis_title, fontsize=12)
+        matplotlib.pyplot.ylabel(y_axis_title, fontsize=12)
         if chart_type != "pie":
-            plt.xticks(rotation=45)
-            plt.legend()
-            plt.grid(True, linestyle="--", alpha=0.7)
+            matplotlib.pyplot.xticks(rotation=45)
+            matplotlib.pyplot.legend()
+            matplotlib.pyplot.grid(True, linestyle="--", alpha=0.7)
 
         # Save chart
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         unique_id = str(uuid.uuid4())[:8]
         chart_name = f'generated_chart_{chart_type}_{timestamp}_{unique_id}.png'
         chart_path = os.path.join(CHARTS_DIR, chart_name)
-        plt.savefig(chart_path, bbox_inches="tight")
-        plt.close()
+        matplotlib.pyplot.savefig(chart_path, bbox_inches="tight")
+        matplotlib.pyplot.close()
 
         print(f"Chart saved as {chart_name}")
         return chart_name, chart_type

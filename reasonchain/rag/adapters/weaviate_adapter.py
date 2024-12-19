@@ -22,7 +22,7 @@ def connect_to_weaviate_cloud(cluster_url, api_key):
 
 
 class WeaviateVectorDB:
-    def __init__(self, mode="local", host="http://localhost:8080", class_name="VectorObject", dimension=768):
+    def __init__(self, mode="local", host="http://localhost:8080", class_name="VectorObject", dimension=768, api_key=None, WEAVIATE_CLUSTER_URL=None):
         """
         Initializes a connection to a Weaviate instance (local or cloud).
         :param mode: "local" or "cloud" to specify connection type.
@@ -36,9 +36,10 @@ class WeaviateVectorDB:
 
         # Connect to Weaviate based on mode
         if mode == "cloud":
+            
             self.client = connect_to_weaviate_cloud(
-                cluster_url=os.get("WEAVIATE_CLUSTER_URL"),
-                api_key=os.get("WEAVIATE_API_KEY"),
+                cluster_url=WEAVIATE_CLUSTER_URL,
+                api_key=api_key,
             )
         elif mode == "local":
             self.client = weaviate.Client(url=host)

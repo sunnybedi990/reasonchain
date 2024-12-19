@@ -362,5 +362,3 @@ class MultiAgentSystem:
             else:
                 print(f"Agent {agent_name} is not registered in the system.")
 
-
-

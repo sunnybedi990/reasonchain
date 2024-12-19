@@ -1,4 +1,4 @@
-from striprtf.striprtf import rtf_to_text
+from reasonchain.utils.lazy_imports import striprtf
 
 def extract_latex_data(file_path):
     """
@@ -34,7 +34,7 @@ def extract_rtf_data(file_path):
     try:
         with open(file_path, "r", encoding="utf-8") as file:
             rtf_content = file.read()
-        text = rtf_to_text(rtf_content)
+        text = striprtf.striprtf.rtf_to_text(rtf_content)
         return {"text": [text], "tables": [], "figures": []}
 
     except Exception as e:
