@@ -1,4 +1,4 @@
-from reasonchain.utils. lazy_imports import os, pinecone, numpy as np
+from reasonchain.utils. lazy_imports import os, pinecone, numpy as np, time, psutil, torch
 import re
 
 def sanitize_index_name(name):
@@ -50,11 +50,19 @@ class PineconeVectorDB:
             namespace (str): Namespace for grouping vectors in Pinecone.
             metadata_key (str): Key under which text will be stored as metadata.
         """
+        embedding_start = time.time()
+
         vectors = [
             {
                 "id": f"vec-{i}",
                 "values": embedding.tolist(),  # Convert numpy array to list
-                "metadata": {metadata_key: text}  # Store the text as metadata
+                "metadata": {
+                        metadata_key: text,
+                        "embedding_time": time.time() - embedding_start,
+                        "device_type": self.device_type,
+                        "gpu_memory_used": torch.cuda.memory_allocated() / 1024**2 if torch.cuda.is_available() else 0,
+                        "cpu_memory_used": psutil.Process().memory_info().rss / 1024**2,
+                    }
             }
             for i, (embedding, text) in enumerate(zip(embeddings, texts))
         ]
@@ -81,25 +89,42 @@ class PineconeVectorDB:
             list of tuples: Each tuple contains (text or id, score) from the search results.
         """
         try:
-            # Ensure the query embedding is a list for compatibility with Pinecone
+            search_start = time.time()
+
+            # Ensure the query embedding is a list
             if isinstance(query_embedding, np.ndarray):
                 query_embedding = query_embedding.tolist()
 
-            # Perform the search
-            response = self.index.query(namespace=namespace,vector=query_embedding, top_k=top_k, include_values=True, include_metadata=True)
+            # Perform search
+            response = self.index.query(
+                vector=query_embedding, 
+                top_k=top_k, 
+                namespace=namespace, 
+                include_values=True, 
+                include_metadata=True
+            )
 
-            # Extract matches and process results
-            matches = response.get('matches', [])
-            results = [
-                (
-                    match['metadata'].get('text', match['id']),  # Default to ID if 'text' is unavailable
-                    match['score']
-                )
-                for match in matches
-            ]
+            search_time = time.time() - search_start
+            gpu_memory = torch.cuda.memory_allocated() / 1024**2 if torch.cuda.is_available() else 0
+            cpu_memory = psutil.Process().memory_info().rss / 1024**2
 
-            # Debugging: Print raw response and processed results
-            print(f"Processed results: {results}")
+            # Extract and enrich results
+            results = []
+            for match in response.get('matches', []):
+                enriched_metadata = match['metadata']
+                enriched_metadata.update({
+                    "search_time": search_time,
+                    "device_type": self.device_type,
+                    "gpu_memory_used": gpu_memory,
+                    "cpu_memory_used": cpu_memory,
+                    "query_time": time.time() - self.start_time,
+                    "similarity_score": match['score'],
+                })
+                results.append({
+                    "id": match['id'],
+                    "metadata": enriched_metadata,
+                    "score": match['score'],
+                })
 
             return results
 
@@ -111,14 +136,21 @@ class PineconeVectorDB:
         Retrieve all vectors and metadata from the Pinecone index.
         """
         try:
+            # Use a dummy vector to retrieve all items
             query_response = self.index.query(
-                vector=[0] * self.dimension,  # Dummy vector to trigger retrieval
-                top_k=10000,  # Adjust as needed based on index size
-                include_metadata=True,
-                namespace=namespace
+                vector=[0] * self.dimension,  # Dummy vector
+                top_k=10000,  # Adjust based on index size
+                namespace=namespace,
+                include_metadata=True
             )
-            return [item["metadata"]["text"] for item in query_response["matches"] if "text" in item["metadata"]]
+
+            return [
+                {
+                    "id": match["id"],
+                    "metadata": match["metadata"]
+                }
+                for match in query_response.get("matches", [])
+            ]
 
         except Exception as e:
             raise RuntimeError(f"Error retrieving all records from Pinecone: {e}")
-

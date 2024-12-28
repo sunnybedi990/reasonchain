@@ -11,13 +11,14 @@ load_dotenv()
 
 # Initialize Memory and Vector Database
 memory = Memory(embedding_provider='sentence_transformers',embedding_model="all-mpnet-base-v2", dimension=768, use_gpu=False)
-vector_db_path = "vector_db_sql.index"  # Define the vector DB path
-vector_db_type = "faiss"  # Use FAISS for vector storage
+pdf_path = "pdfs/tsla-20240930-gen.pdf"  # Path to the Tesla Q-10 report
+vector_db_path = "vector_db_tesla.index"
+vector_db_type = "faiss"  # Can be faiss, milvus, etc.
 
 # Populate vector database with SQL optimization knowledge
-print("\n=== Adding SQL Optimization Knowledge to Vector Database ===")
+print("\n=== Adding Tesla Q-10 Report to Vector Database ===")
 add_pdf_to_vector_db(
-    pdf_path="sql_optimization_guide.pdf",  # Path to a PDF with SQL optimization tips
+    file_path=pdf_path,
     db_path=vector_db_path,
     db_type=vector_db_type,
     db_config=None,
@@ -39,7 +40,7 @@ pipeline.add_step("Retrieve relevant context from memory or vector database.")
 pipeline.add_step("Generate an answer based on the retrieved context.")
 
 # Execute reasoning with RAG integration
-query = "How do I optimize SQL queries?"
+query = "What is the revenue growth of Tesla?"
 print(f"\n=== Querying Vector Database ===")
 retrieved_context = query_vector_db(
     db_path=vector_db_path,
@@ -47,12 +48,23 @@ retrieved_context = query_vector_db(
     query=query,
     embedding_provider="sentence_transformers",
     embedding_model="all-mpnet-base-v2",
-    top_k=5
+    top_k=5,
+    use_gpu=False,
+    db_config=None
 )
+# Access results and metadata
+results = retrieved_context["results"]
+metadata = retrieved_context["metadata"]
 
-# Combine the query with the retrieved context
-augmented_query = f"{query}\nRelevant Context: {retrieved_context}"
+for result in results:
+    print(f"Text: {result['text']}")
+    print(f"Score: {result['score']}")
+    print(f"Chunk Metadata: {result['metadata']}")
+    print("---")
 
-# Execute the pipeline
-response = pipeline.execute(agent.model_manager)
-print(f"\nFinal Output:\n{response}")
+print(f"Query Metadata: {metadata}")# Combine the query with the retrieved context
+# augmented_query = f"{query}\nRelevant Context: {retrieved_context}"
+
+# # Execute the pipeline
+# response = pipeline.execute(agent.model_manager)
+# print(f"\nFinal Output:\n{response}")

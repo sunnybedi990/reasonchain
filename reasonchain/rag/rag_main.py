@@ -4,12 +4,23 @@ from reasonchain.rag.vector.add_to_vector_db import add_pdf_to_vector_db
 from reasonchain.llm_models.model_manager import ModelManager
 from reasonchain.rag.llm_response.chart_parser import parse_response_and_generate_chart
 from reasonchain.rag.llm_response.prompt import Prompt
+import time
 
 def query_vector_db(db_path, db_type, db_config, query, top_k=5, embedding_provider='', embedding_model='', use_gpu=False):
-    """
-    Performs a query on the vector database and generates a response using the specified LLM.
-    """
-    print(db_type)
+    """Performs a query on the vector database with comprehensive metadata."""
+    query_start = time.time()
+    
+    # Initialize metadata
+    query_metadata = {
+        "embedding_provider": embedding_provider,
+        "embedding_model": embedding_model,
+        "db_type": db_type,
+        "use_gpu": use_gpu,
+        "query": query,
+        "top_k": top_k,
+        "timestamp": time.time(),
+    }
+
     # Initialize the vector database
     vector_db = VectorDB(
         db_path=db_path,
@@ -26,27 +37,53 @@ def query_vector_db(db_path, db_type, db_config, query, top_k=5, embedding_provi
         vector_db.load_index(db_path)
 
     print(f"Querying the vector database with: '{query}'")
-    if query == "*":
-        # Retrieve all documents
-        results = vector_db.get_all()
-        print('Result shape', results)
-        # # Clean results for summarization
-        if isinstance(results[0], tuple) and len(results[0]) == 2:
-            # Remove scores if necessary
-            clean_results = [text for text, score in results]
-        else:
-            clean_results = [text for text in results]
-        accumulate_resuls = ''.join(clean_results)
-        return accumulate_resuls
+    
+    try:
+        if query == "*":
+            results = vector_db.get_all()
+            if isinstance(results[0], tuple) and len(results[0]) == 2:
+                clean_results = [text for text, score in results]
+            else:
+                clean_results = [text for text in results]
+            
+            return {
+                "results": clean_results,
+                "metadata": {
+                    **query_metadata,
+                    "total_results": len(clean_results),
+                    "query_type": "get_all",
+                    "total_time": time.time() - query_start
+                }
+            }
 
-    # Perform the search using VectorDB
-    results = vector_db.search(query, top_k=top_k)
-    if not results:
-        raise RuntimeError(f"No results found in {db_type} for the query: '{query}'")
+        # Perform the search
+        results = vector_db.search(query, top_k=top_k)
+        if not results:
+            raise RuntimeError(f"No results found in {db_type} for the query: '{query}'")
 
-    print(f"Raw search results: {results}")
+        # Add query-level metadata
+        query_metadata.update({
+            "total_results": len(results),
+            "query_type": "semantic_search",
+            "total_time": time.time() - query_start
+        })
 
-    return results
+        return {
+            "results": results,
+            "metadata": query_metadata
+        }
+
+    except Exception as e:
+        error_metadata = {
+            **query_metadata,
+            "error": str(e),
+            "error_type": type(e).__name__,
+            "total_time": time.time() - query_start
+        }
+        raise RuntimeError({
+            "error": str(e),
+            "metadata": error_metadata
+        })
 
 
 def main():
