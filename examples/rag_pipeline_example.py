@@ -13,7 +13,15 @@ load_dotenv()
 memory = Memory(embedding_provider='sentence_transformers',embedding_model="all-mpnet-base-v2", dimension=768, use_gpu=False)
 pdf_path = "pdfs/tsla-20240930-gen.pdf"  # Path to the Tesla Q-10 report
 vector_db_path = "vector_db_tesla.index"
-vector_db_type = "faiss"  # Can be faiss, milvus, etc.
+vector_db_type = "qdrant"  # Can be faiss, milvus, etc.
+db_config = {
+    "mode": "cloud",
+    "api_key": os.getenv("QDRANT_API_KEY"),
+    "host": os.getenv("QDRANT_HOST"),
+    "port": os.getenv("QDRANT_PORT"),
+    "collection_name": os.getenv("QDRANT_COLLECTION_NAME")
+}
+
 
 # Populate vector database with SQL optimization knowledge
 print("\n=== Adding Tesla Q-10 Report to Vector Database ===")
@@ -21,7 +29,7 @@ add_pdf_to_vector_db(
     file_path=pdf_path,
     db_path=vector_db_path,
     db_type=vector_db_type,
-    db_config=None,
+    db_config=db_config,
     embedding_provider="sentence_transformers",
     embedding_model="all-mpnet-base-v2",
     use_gpu=True
@@ -50,7 +58,7 @@ retrieved_context = query_vector_db(
     embedding_model="all-mpnet-base-v2",
     top_k=5,
     use_gpu=False,
-    db_config=None
+    db_config=db_config
 )
 # Access results and metadata
 results = retrieved_context["results"]

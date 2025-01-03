@@ -95,7 +95,7 @@ def initialize_vector_db(db_type, db_config=None, embedding_dimension=None, db_p
             api_key=api_key
         )
     elif db_type == "weaviate":
-        api_key = db_config.get("api_key") or os.getenv("PINECONE_API_KEY")
+        api_key = db_config.get("api_key") or os.getenv("WEAVIATE_API_KEY")
         WEAVIATE_CLUSTER_URL = db_config.get("WEAVIATE_CLUSTER_URL") or os.getenv("WEAVIATE_CLUSTER_URL")
         return WeaviateVectorDB(
             mode=db_config["mode"],

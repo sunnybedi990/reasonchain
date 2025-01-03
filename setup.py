@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="reasonchain",
-    version="0.1.97",
+    version="0.1.98",
     description="A modular AI reasoning library for building intelligent agents.",
     long_description=open("Readme.md").read(),
     long_description_content_type="text/markdown",
