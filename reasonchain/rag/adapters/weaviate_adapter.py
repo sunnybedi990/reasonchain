@@ -1,23 +1,10 @@
-from reasonchain.utils.lazy_imports import os, psutil
+from reasonchain.utils.lazy_imports import weaviate, os, psutil
 import time
 import torch
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Dict, Any, List
 
-# Change these imports to avoid circular dependency
-import weaviate.classes.init
-import weaviate.client
-import weaviate.classes.config as wc
-
-
-from weaviate.collections.classes.config import (
-    Configure,
-    Property,
-    DataType,
-    VectorDistances,
-    StopwordsPreset
-)
 
 @dataclass
 class WeaviateMetrics:
@@ -179,18 +166,18 @@ class WeaviateVectorDB:
 
             # Define properties for new collection
             properties = [
-                wc.Property(
+                weaviate.classes.config.Property(
                     name="doc_id",
                     description="Unique identifier for the document",
-                    data_type=wc.DataType.TEXT,
+                    data_type=weaviate.classes.config.DataType.TEXT,
                     skip_vectorization=True,
                     index_filterable=True,
                     index_searchable=True,
                 ),
-                wc.Property(
+                weaviate.classes.config.Property(
                     name="text",
                     description="The document text content",
-                    data_type=wc.DataType.TEXT,
+                    data_type=weaviate.classes.config.DataType.TEXT,
                     skip_vectorization=True,
                     index_filterable=True,
                     index_searchable=True,
@@ -202,10 +189,10 @@ class WeaviateVectorDB:
                 name=self.class_name,
                 description="Collection for storing documents with custom vectors",
                 properties=properties,
-                vector_index_config=wc.Configure.VectorIndex.flat(
-                    distance_metric=wc.VectorDistances.COSINE,
+                vector_index_config=weaviate.classes.config.Configure.VectorIndex.flat(
+                    distance_metric=weaviate.classes.config.VectorDistances.COSINE,
                 ),
-                vectorizer_config=wc.Configure.Vectorizer.none()  # Important for custom vectors
+                vectorizer_config=weaviate.classes.config.Configure.Vectorizer.none()  # Important for custom vectors
             )
             
             print(f"Created new collection: {self.class_name}")
