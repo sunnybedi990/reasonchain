@@ -206,11 +206,11 @@ class VectorDB:
 
         # Check backend type and handle accordingly
         if isinstance(self.db, FAISSVectorDB):
-            self.db.add_embeddings(embeddings, texts)  # FAISS generates embeddings internally
+            return self.db.add_embeddings(embeddings, texts)  # FAISS generates embeddings internally
         elif isinstance(self.db, PineconeVectorDB):
             namespace = kwargs.get("namespace", "default-namespace")  # Default namespace
             metadata_key = kwargs.get("metadata_key", "text")  # Metadata key for storing text
-            self.db.add_embeddings(
+            return self.db.add_embeddings(
                 embeddings=embeddings,
                 texts=texts,
                 namespace=namespace,
@@ -218,15 +218,16 @@ class VectorDB:
             )
         elif isinstance(self.db, MilvusVectorDB):
             ids = [f"text-{i}" for i in range(len(texts))]
-            self.db.add_embeddings(ids, embeddings)
+            return self.db.add_embeddings(ids, embeddings)
         elif isinstance(self.db, QdrantVectorDB):
             ids = list(range(len(texts)))  # Generate integer IDs
             embeddings = embeddings.tolist()  # Ensure embeddings are in list format
             metadata = [{"text": text} for text in texts]  # Use texts as metadata
-            self.db.add_embeddings(ids, embeddings, metadata)
+            return self.db.add_embeddings(ids, embeddings, metadata)
         elif isinstance(self.db, WeaviateVectorDB):
             ids = [f"text-{i}" for i in range(len(texts))]
-            self.db.add_embeddings(ids, embeddings)
+            metadata = [{"text": text} for text in texts]  # Use texts as metadata
+            return self.db.add_embeddings(ids, embeddings, metadata)
         else:
             raise ValueError(f"Unsupported backend type: {type(self.db)}")
 

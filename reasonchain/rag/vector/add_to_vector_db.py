@@ -3,7 +3,7 @@ from reasonchain.rag.vector.VectorDB import VectorDB
 from reasonchain.rag.document_extract.pdf_extractor import process_figure_with_clip
 from reasonchain.rag.document_extract.extractor_handler import extract_data
 
-def add_pdf_to_vector_db(
+def add_data_to_vector_db(
     file_path,
     db_path='vector_db.index',
     db_type='faiss',
@@ -74,15 +74,17 @@ def add_pdf_to_vector_db(
 
 
         # Add embeddings to the vector database
-        db.add_embeddings(all_content)
+        result = db.add_embeddings(all_content)
 
         # Save the FAISS index if applicable
         if db_type == "faiss":
             db.save_index(db_path)
             print(f"FAISS index saved at {db_path}.")
+            return result
+
         else:
             print(f"Data added to {db_type} vector database.")
-
+            return result
     except Exception as e:
         print(f"Error adding PDF to vector database: {e}")
         raise
@@ -91,4 +93,4 @@ def add_pdf_to_vector_db(
 # Usage Example:
 if __name__ == "__main__":
     pdf_path = 'example.pdf'
-    add_pdf_to_vector_db(pdf_path, db_path='example_vector_db.index', use_llama=True)
+    add_data_to_vector_db(pdf_path, db_path='example_vector_db.index', use_llama=True)

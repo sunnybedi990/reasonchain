@@ -1,6 +1,6 @@
 import argparse
 from reasonchain.rag.vector.VectorDB import VectorDB
-from reasonchain.rag.vector.add_to_vector_db import add_pdf_to_vector_db
+from reasonchain.rag.vector.add_to_vector_db import add_data_to_vector_db
 from reasonchain.llm_models.model_manager import ModelManager
 from reasonchain.rag.llm_response.chart_parser import parse_response_and_generate_chart
 from reasonchain.rag.llm_response.prompt import Prompt
@@ -104,7 +104,7 @@ def main():
         if not args.pdf:
             print("Error: PDF path is required in 'add' mode.")
             return
-        add_pdf_to_vector_db(
+        result = add_data_to_vector_db(
             pdf_path=args.pdf,
             db_path=args.db_path,
             db_type=args.db_type,
@@ -112,6 +112,7 @@ def main():
             embedding_model=args.embedding_model,
             use_gpu=args.use_gpu
         )
+        print(result)
     elif args.mode == "query":
         if not args.query:
             print("Error: Query is required in 'query' mode.")

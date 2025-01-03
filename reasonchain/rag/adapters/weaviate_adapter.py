@@ -4,7 +4,20 @@ import torch
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Dict, Any, List
-import weaviate
+
+# Change these imports to avoid circular dependency
+import weaviate.classes.init
+import weaviate.client
+import weaviate.classes.config as wc
+
+
+from weaviate.collections.classes.config import (
+    Configure,
+    Property,
+    DataType,
+    VectorDistances,
+    StopwordsPreset
+)
 
 @dataclass
 class WeaviateMetrics:
@@ -15,6 +28,13 @@ class WeaviateMetrics:
         "inverted": [],
         "vector": []
     })
+    
+    # API metrics
+    total_api_calls: int = 0
+    
+    # Memory metrics
+    memory_active_bytes: int = 0
+    memory_allocated_bytes: int = 0
     
     # Object metrics
     object_count: int = 0
@@ -72,10 +92,13 @@ def connect_to_weaviate_cloud(cluster_url, api_key):
         print(f"Debug - Final URL: {cluster_url}")
         print(f"Debug - API Key (first 10 chars): {api_key[:10]}...")
         
+        # Use specific imports to avoid circular dependency
+        auth_credentials = weaviate.classes.init.Auth.api_key(api_key)
+        
         # Initialize client with v4 syntax for synchronous cloud connection
         client = weaviate.connect_to_weaviate_cloud(
             cluster_url=cluster_url,
-            auth_credentials=weaviate.classes.init.Auth.api_key(api_key)
+            auth_credentials=auth_credentials
         )
         
         print(f"Debug - Attempting connection to: {cluster_url}")
@@ -94,7 +117,7 @@ def connect_to_weaviate_cloud(cluster_url, api_key):
 
 
 class WeaviateVectorDB:
-    def __init__(self, mode="local", host="http://localhost:8080", class_name="VectorObject", dimension=768, api_key=None, WEAVIATE_CLUSTER_URL=None):
+    def __init__(self, mode="local", host="http://localhost", port=8080, class_name="VectorObject", dimension=768, api_key=None, WEAVIATE_CLUSTER_URL=None):
         """Initialize Weaviate client and collection with metrics tracking."""
         self.class_name = class_name
         self.dimension = dimension
@@ -119,10 +142,9 @@ class WeaviateVectorDB:
             )
         elif mode == "local":
             # For local connection
-            client = weaviate.connect_to_weaviate(
-                connection_params=weaviate.connect.ConnectionParams.from_url(
-                    url=host
-                )
+            client = weaviate.connect_to_local(
+                host=host,
+                port=port,
             )
             self.client = client
         else:
@@ -131,53 +153,129 @@ class WeaviateVectorDB:
         self._initialize_schema()
 
     def _initialize_schema(self):
-        """
-        Initialize the Weaviate schema for the specified class.
-        """
+        """Initialize the Weaviate schema for storing custom vectors."""
         try:
-            schema = self.client.schema.get()
-            if not any(cls["class"] == self.class_name for cls in schema.get("classes", [])):
-                self.client.schema.create_class({
-                    "class": self.class_name,
-                    "vectorizer": "none",
-                    "properties": [],
-                })
-                print(f"Class {self.class_name} created.")
-            else:
-                print(f"Class {self.class_name} already exists.")
-        except Exception as e:
-            raise ValueError(f"Error initializing schema: {e}")
+            # Check if collection exists
+            if self.client.collections.exists(self.class_name):
+                print(f"Using existing collection: {self.class_name}")
+                collection = self.client.collections.get(self.class_name)
+                
+                # Get collection configuration
+                collection_config = self.client.collections.export_config(self.class_name)
+                
+                # Validate the existing collection has required properties
+                existing_properties = {
+                    prop.name for prop in collection_config.properties
+                }
+                required_properties = {"doc_id", "text"}
+                
+                if not required_properties.issubset(existing_properties):
+                    missing_props = required_properties - existing_properties
+                    raise ValueError(
+                        f"Existing collection {self.class_name} missing required properties: {missing_props}"
+                    )
+                    
+                return collection
 
-    def add_embeddings(self, ids, embeddings):
+            # Define properties for new collection
+            properties = [
+                wc.Property(
+                    name="doc_id",
+                    description="Unique identifier for the document",
+                    data_type=wc.DataType.TEXT,
+                    skip_vectorization=True,
+                    index_filterable=True,
+                    index_searchable=True,
+                ),
+                wc.Property(
+                    name="text",
+                    description="The document text content",
+                    data_type=wc.DataType.TEXT,
+                    skip_vectorization=True,
+                    index_filterable=True,
+                    index_searchable=True,
+                ),
+            ]
+
+            # Create new collection with proper configuration
+            collection = self.client.collections.create(
+                name=self.class_name,
+                description="Collection for storing documents with custom vectors",
+                properties=properties,
+                vector_index_config=wc.Configure.VectorIndex.flat(
+                    distance_metric=wc.VectorDistances.COSINE,
+                ),
+                vectorizer_config=wc.Configure.Vectorizer.none()  # Important for custom vectors
+            )
+            
+            print(f"Created new collection: {self.class_name}")
+            return collection
+
+        except Exception as e:
+            print(f"Error initializing schema: {str(e)}")
+            raise
+
+    def add_embeddings(self, ids, embeddings, metadata=None):
         """Add embeddings with standardized metrics."""
         try:
             embedding_start = time.time()
-            
+
             # Update operation metrics
             self.metrics.requests_total["success"] += 1
-            self.metrics.vector_index_operations["insert"] += len(embeddings)
             self.metrics.total_api_calls += 1
 
-            for id_, embedding in zip(ids, embeddings):
+            # Ensure client is connected
+            if not self.client.is_ready():
+                self.client.connect()
+
+            # Prepare batch of objects
+            objects = []
+            for id_, embedding, meta in zip(ids, embeddings, metadata):
                 if len(embedding) != self.dimension:
                     raise ValueError(f"Embedding dimension mismatch. Expected {self.dimension}, got {len(embedding)}")
-                self.client.data_object.create(
-                    data_object={"id": id_},
-                    class_name=self.class_name,
-                    vector=embedding,
-                )
+                
+                # Convert embedding to list if it's a numpy array or tensor
+                if hasattr(embedding, 'tolist'):
+                    embedding = embedding.tolist()
 
+                # Prepare properties with required fields
+                properties = {
+                    "doc_id": str(id_),
+                    "text": meta["text"]  # Get text from metadata
+                }
+
+                objects.append({
+                    "properties": properties,
+                    "vector": embedding,
+                    "class_name": self.class_name,
+                })
+
+            # Perform batch import
+            failed_objects = []
+            with self.client.batch.dynamic() as batch:
+                for obj in objects:
+                    try:
+                        batch.add_object(
+                            properties=obj["properties"],
+                            vector=obj["vector"],
+                            collection=self.class_name,
+                        )
+                    except Exception as batch_error:
+                        failed_objects.append({"object": obj, "error": str(batch_error)})
+                        self.metrics.requests_total["failed"] += 1
+
+            # Update metrics for successful adds
+            successful_adds = len(objects) - len(failed_objects)
+            self.metrics.vector_index_operations["insert"] += successful_adds
+            self.metrics.vector_index_size += successful_adds
             embedding_time = time.time() - embedding_start
-            self.metrics.batch_durations_ms["vector"].append(embedding_time * 1000)
-            self.metrics.index_queue_metrics["push_duration_ms"] = embedding_time * 1000
-
-            # Resource metrics
+            print(f"Batch insertion completed in {embedding_time:.2f} seconds.")
+# Resource metrics
             gpu_memory = torch.cuda.memory_allocated() / 1024**2 if torch.cuda.is_available() else 0
             cpu_memory = psutil.Process().memory_info().rss / 1024**2
-
             return {
-                "status": "success",
-                "metadata": {
+                "status": "success" if not failed_objects else "partial_success",
+                 "metadata": {
                     "operation_metrics": {
                         "operation": "add_embeddings",
                         "vectors_added": len(embeddings),
@@ -230,74 +328,101 @@ class WeaviateVectorDB:
                 }
             }
 
+
+
+
     def search(self, query_embedding, top_k=5):
         """Search with standardized metrics."""
         try:
             search_start = time.time()
-            self.metrics.requests_total["success"] += 1
             self.metrics.total_api_calls += 1
 
-            response = self.client.query.get(
-                self.class_name,
-                ["id"]
-            ).with_near_vector({"vector": query_embedding}).with_limit(top_k).do()
+            # Ensure client is connected
+            if not self.client.is_ready():
+                self.client.connect()
+
+            # Get collection
+            collection = self.client.collections.get(self.class_name)
+            
+            # Convert query_embedding to list if it's numpy array or tensor
+            if hasattr(query_embedding, 'tolist'):
+                query_embedding = query_embedding.tolist()
+            
+            # Perform search with proper v4 syntax
+            response = collection.query.near_vector(
+                near_vector=query_embedding,
+                limit=top_k,
+                return_properties=["text", "doc_id"],  # Add doc_id to returned properties
+                return_metadata=weaviate.classes.query.MetadataQuery(
+                    distance=True,
+                    score=True,
+                )
+            )
 
             search_time = time.time() - search_start
-            self.metrics.index_queue_metrics["search_duration_ms"] = search_time * 1000
-
-            # Resource metrics
-            gpu_memory = torch.cuda.memory_allocated() / 1024**2 if torch.cuda.is_available() else 0
-            cpu_memory = psutil.Process().memory_info().rss / 1024**2
-
-            matches = response.get("data", {}).get("Get", {}).get(self.class_name, [])
-            scores = [match["_additional"]["distance"] for match in matches]
-
             processed_results = []
-            for i, match in enumerate(matches):
-                processed_results.append({
-                    "text": match.get("text", ""),
-                    "score": match["_additional"]["distance"],
-                    "metadata": {
-                        "search_metrics": {
-                            "search_time": search_time,
-                            "query_time": time.time() - self.start_time,
-                            "similarity_score": match["_additional"]["distance"],
-                            "rank": i + 1,
-                            "total_results": len(matches),
-                            "total_api_calls": self.metrics.total_api_calls,
-                            "requests_total": self.metrics.requests_total
+            scores = []
+            
+            # Process results with proper error handling
+            if hasattr(response, 'objects') and response.objects:
+                for i, obj in enumerate(response.objects):
+                    # Get distance and convert to similarity score
+                    distance = obj.metadata.distance if hasattr(obj.metadata, 'distance') else 0.0
+                    score = 1.0 - (distance / 2.0)  # Convert cosine distance to similarity
+                    scores.append(score)
+                    
+                    # Extract text content
+                    text_content = obj.properties.get("text", "")
+                    
+                    processed_results.append({
+                        "text": text_content,
+                        "score": score,
+                        "metadata": {
+                            "search_metrics": {
+                                "search_time": search_time,
+                                "query_time": time.time() - self.start_time,
+                                "similarity_score": score,
+                                "rank": i + 1,
+                                "total_results": len(response.objects),
+                                "total_api_calls": self.metrics.total_api_calls,
+                                "requests_total": self.metrics.requests_total
+                            },
+                            "resource_metrics": {
+                                "gpu_memory_used": torch.cuda.memory_allocated() / 1024**2 if torch.cuda.is_available() else 0,
+                                "cpu_memory_used": psutil.Process().memory_info().rss / 1024**2,
+                                "device_type": self.device_type,
+                                "memory_active_bytes": self.metrics.memory_active_bytes,
+                                "memory_allocated_bytes": self.metrics.memory_allocated_bytes
+                            },
+                            "index_metrics": {
+                                "total_vectors": self.metrics.vector_index_size,
+                                "dimension": self.dimension,
+                                "vector_operations": self.metrics.vector_index_operations,
+                                "tombstones": self.metrics.vector_index_tombstones
+                            },
+                            "score_stats": {
+                                "max_score": max(scores),
+                                "min_score": min(scores),
+                                "mean_score": sum(scores) / len(scores),
+                                "total_chunks": self.metrics.vector_index_size
+                            },
+                            "queue_metrics": {
+                                "size": self.metrics.index_queue_size,
+                                **self.metrics.index_queue_metrics
+                            }
                         },
-                        "resource_metrics": {
-                            "gpu_memory_used": gpu_memory,
-                            "cpu_memory_used": cpu_memory,
-                            "device_type": self.device_type,
-                            "memory_active_bytes": self.metrics.memory_active_bytes,
-                            "memory_allocated_bytes": self.metrics.memory_allocated_bytes
-                        },
-                        "index_metrics": {
-                            "total_vectors": self.metrics.vector_index_size,
-                            "dimension": self.dimension,
-                            "vector_operations": self.metrics.vector_index_operations,
-                            "tombstones": self.metrics.vector_index_tombstones
-                        },
-                        "score_stats": {
-                            "max_score": max(scores),
-                            "min_score": min(scores),
-                            "mean_score": sum(scores) / len(scores),
-                            "total_chunks": self.metrics.vector_index_size
-                        },
-                        "queue_metrics": {
-                            "size": self.metrics.index_queue_size,
-                            **self.metrics.index_queue_metrics
-                        }
-                    },
-                    "index": match["id"]
-                })
+                        "index": obj.properties.get("doc_id", str(obj.uuid) if hasattr(obj, 'uuid') else None)
+                    })
 
+            if not processed_results:
+                print("Warning: No results found in search response")
+                print(f"Debug - Response content: {response}")
+                
             return processed_results
 
         except Exception as e:
             self.metrics.requests_total["failed"] += 1
+            print(f"Search error: {str(e)}")
             raise ValueError({
                 "error": str(e),
                 "metadata": {
@@ -307,7 +432,7 @@ class WeaviateVectorDB:
                     "timestamp": time.time()
                 }
             })
-
+        
     def get_metadata(self) -> Dict[str, Any]:
         """Get comprehensive metadata about operations and metrics."""
         try:
@@ -387,9 +512,3 @@ class WeaviateVectorDB:
             raise RuntimeError(f"Error retrieving all records from Weaviate: {e}")
 
 
-def main():
-    client = WeaviateVectorDB(mode="cloud", api_key=os.getenv("WEAVIATE_API_KEY"), WEAVIATE_CLUSTER_URL=os.getenv("WEAVIATE_CLUSTER_URL"))
-    print(client.is_ready())
-
-if __name__ == "__main__":
-    main()
