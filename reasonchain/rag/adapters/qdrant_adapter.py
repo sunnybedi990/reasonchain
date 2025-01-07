@@ -37,7 +37,7 @@ class QdrantMetrics:
 
 class QdrantVectorDB:
 
-    def __init__(self, collection_name="vector_collection", dimension=768, mode="local", host="localhost", port=6333, path=None, api_key=None):
+    def __init__(self, collection_name="vector_collection", dimension=768, mode="local", host="localhost", port=6333, path=None, api_key=None, batch_size=1000):
         """
         Initialize Qdrant client and collection.
         """
@@ -45,7 +45,7 @@ class QdrantVectorDB:
         self.dimension = dimension
         self.start_time = time.time()
         self.device_type = "GPU" if torch.cuda.is_available() else "CPU"
-
+        self.batch_size = batch_size
         if mode == "local":
             self.client = qdrant_client.QdrantClient(host=host, port=port)
         elif mode == "cloud":
@@ -96,12 +96,14 @@ class QdrantVectorDB:
                 )
                 for i in range(len(ids))
             ]
-
+            
             # Perform upsert
-            operation = self.client.upsert(
-                collection_name=self.collection_name,
-                points=points
-            )
+            for i in range(0, len(points), self.batch_size):
+                batch = points[i:i + self.batch_size]
+                operation = self.client.upsert(
+                    collection_name=self.collection_name,
+                    points=batch
+                )
 
             # Update metrics
             embedding_time = time.time() - embedding_start

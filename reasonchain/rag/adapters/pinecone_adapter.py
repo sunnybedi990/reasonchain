@@ -61,7 +61,7 @@ class PineconeMetrics:
     error_count: int = 0
 
 class PineconeVectorDB:
-    def __init__(self, api_key=None, environment="us-east-1", index_name="vector_index", dimension=768):
+    def __init__(self, api_key=None, environment="us-east-1", index_name="vector_index", dimension=768, batch_size=1000):
         if not api_key:
             api_key = os.getenv("PINECONE_API_KEY")
             if not api_key:
@@ -73,7 +73,8 @@ class PineconeVectorDB:
         self.start_time = time.time()
         self.device_type = "GPU" if torch.cuda.is_available() else "CPU"
         self.metrics = PineconeMetrics()
-
+        self.batch_size = batch_size
+        self.environment = environment
         # Initialize Pinecone client
         self.pinecone = pinecone.Pinecone(api_key=api_key)
 
@@ -86,7 +87,7 @@ class PineconeVectorDB:
                 metric="cosine",
                 spec=pinecone.ServerlessSpec(
                     cloud="aws",
-                    region=environment
+                    region=self.environment
                 )
             )
 
@@ -109,7 +110,7 @@ class PineconeVectorDB:
             # Get index description (using describe_index_stats instead of describe_index)
             index_desc = stats.namespaces
             self.metrics.cloud_provider = "aws"  # Default for serverless
-            self.metrics.region = self.index._environment  # Get region from index object
+            self.metrics.region = self.environment  # Get region from index object
             self.metrics.replicas = 1  # Default for serverless
             
         except Exception as e:
@@ -213,10 +214,12 @@ class PineconeVectorDB:
             print(f"Adding {len(embeddings)} vectors to index '{self.index_name}'")
             
             # Perform upsert
-            upsert_response = self.index.upsert(
-                vectors=vectors,
-                namespace=namespace
-            )
+            for i in range(0, len(vectors), self.batch_size):
+                batch = vectors[i:i + self.batch_size]
+                upsert_response = self.index.upsert(
+                    vectors=batch,
+                    namespace=namespace
+                )
             
             # Add verification print
             stats = self.index.describe_index_stats()

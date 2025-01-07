@@ -69,7 +69,7 @@ DEV_REQUIREMENTS = [
 
 setup(
     name="reasonchain",
-    version="0.2.11",
+    version="0.2.17",
     description="A modular AI reasoning library for building intelligent agents.",
     long_description=open("Readme.md").read(),
     long_description_content_type="text/markdown",

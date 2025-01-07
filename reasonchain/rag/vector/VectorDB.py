@@ -39,7 +39,7 @@ def initialize_vector_db(db_type, db_config=None, embedding_dimension=None, db_p
     # Load defaults from YAML
     config = load_config()
     db_defaults = config["vector_databases"].get(db_type, {})
-
+    # print(db_config)
     # If db_config is None, use db_defaults
     if db_config is None:
         db_config = db_defaults
@@ -80,6 +80,7 @@ def initialize_vector_db(db_type, db_config=None, embedding_dimension=None, db_p
             environment=db_config["environment"],
             index_name=db_config["index_name"],
             dimension=embedding_dimension,
+            batch_size=db_config.get("batch_size", 1000)
         )
     elif db_type == "qdrant":
         api_key = db_config.get("api_key") or os.getenv("QDRANT_API_KEY")
@@ -92,7 +93,8 @@ def initialize_vector_db(db_type, db_config=None, embedding_dimension=None, db_p
             port=db_config["port"],
             collection_name=db_config["collection_name"],
             dimension=embedding_dimension,
-            api_key=api_key
+            api_key=api_key,
+            batch_size=db_config.get("batch_size", 1000)
         )
     elif db_type == "weaviate":
         api_key = db_config.get("api_key") or os.getenv("WEAVIATE_API_KEY")

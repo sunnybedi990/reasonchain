@@ -4,8 +4,13 @@ import sys
 import logging
 import threading
 import asyncio
-
+import os  # Direct import for built-in module
+import pickle
+import time
 logging.basicConfig(level=logging.INFO)
+
+# Assign os directly to avoid LazyImport for built-in module
+os = os
 
 class LazyImport:
     _installed_cache = set()  # Cache for installed libraries
@@ -87,7 +92,6 @@ sentence_transformers = LazyImport("sentence_transformers", "sentence-transforme
 transformers = LazyImport("transformers","transformers")
 tensorflow_hub = LazyImport("tensorflow_hub", "tensorflow_hub")
 gensim_downloader = LazyImport("gensim.downloader", "gensim")
-os = LazyImport("os")
 
 # Core Libraries
 numpy = LazyImport("numpy", "numpy")
@@ -97,6 +101,7 @@ torch = LazyImport("torch", "torch")
 tqdm = LazyImport("tqdm", "tqdm")
 pandas = LazyImport("pandas","pandas")
 requests = LazyImport("requests","requests")
+os = os
 
 # Database Libraries
 faiss = LazyImport("faiss", "faiss-cpu")
@@ -104,7 +109,7 @@ pymilvus = LazyImport("pymilvus", "pymilvus")
 pinecone = LazyImport("pinecone", "pinecone")
 qdrant_client = LazyImport("qdrant_client", "qdrant-client")
 weaviate = LazyImport("weaviate", "weaviate-client")
-pickle = LazyImport("pickle", "pickle")
+pickle = pickle
 
 # LLM Integration
 ollama = LazyImport("ollama", "ollama")
@@ -141,4 +146,4 @@ spacy = LazyImport("spacy","spacy")
 fitz = LazyImport("fitz", "fitz")
 striprtf = LazyImport("striprtf","striprtf")
 psutil = LazyImport("psutil", "psutil")
-time = LazyImport("time", "time")
+time = time

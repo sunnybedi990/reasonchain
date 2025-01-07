@@ -11,9 +11,12 @@ load_dotenv()
 
 # Initialize Memory and Vector Database
 memory = Memory(embedding_provider='sentence_transformers',embedding_model="all-mpnet-base-v2", dimension=768, use_gpu=False)
-pdf_path = "pdfs/tsla-20240930-gen.pdf"  # Path to the Tesla Q-10 report
+file_paths = [
+    "pdfs/tsla-20240930-gen.pdf",
+    # Add more PDF paths here
+]  # List of files to process
 vector_db_path = "vector_db_tesla.index"
-vector_db_type = "weaviate"  # Can be faiss, milvus, etc.
+vector_db_type = "faiss"  # Can be faiss, milvus, etc.
 # db_config = {
 #     "mode": "cloud",
 #     "api_key": os.getenv("QDRANT_API_KEY"),
@@ -37,9 +40,9 @@ db_config = {
 
 
 # Populate vector database with SQL optimization knowledge
-print("\n=== Adding Tesla Q-10 Report to Vector Database ===")
+print("\n=== Adding Tesla Reports to Vector Database ===")
 result = add_data_to_vector_db(
-    file_path=pdf_path,
+    file_paths=file_paths,  # Now passing a list of files
     db_path=vector_db_path,
     db_type=vector_db_type,
     db_config=db_config,
