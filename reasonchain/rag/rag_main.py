@@ -1,9 +1,9 @@
 import argparse
 from reasonchain.rag.vector.VectorDB import VectorDB
 from reasonchain.rag.vector.add_to_vector_db import add_data_to_vector_db
-from reasonchain.llm_models.model_manager import ModelManager
-from reasonchain.rag.llm_response.chart_parser import parse_response_and_generate_chart
-from reasonchain.rag.llm_response.prompt import Prompt
+# from reasonchain.llm_models.model_manager import ModelManager
+# from reasonchain.rag.llm_response.chart_parser import parse_response_and_generate_chart
+# from reasonchain.rag.llm_response.prompt import Prompt
 import time
 
 def query_vector_db(db_path, db_type, db_config, query, top_k=5, embedding_provider='', embedding_model='', use_gpu=False):

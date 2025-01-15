@@ -1,6 +1,9 @@
 import os
+# Set tokenizer parallelism to avoid warnings
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 from reasonchain.rag.vector.VectorDB import VectorDB
-from reasonchain.rag.document_extract.pdf_extractor import process_figure_with_clip
+from reasonchain.rag.document_extract.pdf_extractor import process_figure_with_clip, process_figures_batch
 from reasonchain.rag.document_extract.extractor_handler import extract_data
 
 def add_data_to_vector_db(
@@ -12,7 +15,8 @@ def add_data_to_vector_db(
     embedding_model='all-mpnet-base-v2',
     use_gpu=True,
     use_llama=False,
-    api_key=None
+    api_key=None,
+    batch_size=32
 ):
     """
     Processes multiple files, extracts content, and adds them to a vector database.
@@ -27,6 +31,7 @@ def add_data_to_vector_db(
         use_gpu (bool): Whether to use GPU for embedding.
         use_llama (bool): Whether to use LlamaParse for PDF extraction.
         api_key (str): API key for vector database if required.
+        batch_size (int): Size of batches for processing figures and embeddings.
     """
     try:
         if isinstance(file_paths, str):
@@ -70,15 +75,24 @@ def add_data_to_vector_db(
             print("No content extracted from any files.")
             return
 
-        # Process all figures using CLIP
+        # Process figures in batches using CLIP
         if all_figures:
-            print(f"Processing {len(all_figures)} total figures")
-            for i, figure in enumerate(all_figures):
-                caption, clip_embedding = process_figure_with_clip(figure, i)
-                all_content.append(caption)
-                if clip_embedding is not None:
-                    print(clip_embedding.shape)
-                    db.add_embeddings(clip_embeddings=clip_embedding, texts=[caption])
+            print(f"Processing {len(all_figures)} total figures in batches of {batch_size}")
+            for i in range(0, len(all_figures), batch_size):
+                batch_figures = all_figures[i:i + batch_size]
+                # Process batch of figures
+                target_dim = db.get_embedding_dimension()
+                captions, clip_embeddings = process_figures_batch(batch_figures, start_idx=i, target_dim=target_dim)
+                
+                # Add captions to content
+                all_content.extend(captions)
+                
+                # Add embeddings if available
+                if clip_embeddings is not None:
+                    print(f"Adding batch of {len(clip_embeddings)} figure embeddings")
+                    db.add_embeddings(clip_embeddings=clip_embeddings, texts=captions)
+                
+                print(f"Processed figures {i+1} to {min(i+batch_size, len(all_figures))}")
 
         # Add all embeddings to the vector database
         result = db.add_embeddings(all_content)
@@ -99,4 +113,4 @@ def add_data_to_vector_db(
 # Usage Example:
 if __name__ == "__main__":
     file_paths = ['example1.pdf', 'example2.pdf']  # List of files
-    add_data_to_vector_db(file_paths, db_path='example_vector_db.index', use_llama=True)
+    add_data_to_vector_db(file_paths, db_path='example_vector_db.index', use_llama=True, batch_size=32)

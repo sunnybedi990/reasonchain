@@ -10,9 +10,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Initialize Memory and Vector Database
-memory = Memory(embedding_provider='sentence_transformers',embedding_model="all-mpnet-base-v2", dimension=768, use_gpu=False)
+memory = Memory(embedding_provider='sentence_transformers',embedding_model="all-MiniLM-L6-v2", dimension=768, use_gpu=False)
 file_paths = [
-    "pdfs/tsla-20240930-gen.pdf",
+    "pdfs/tesla_q3_2024.pdf",
     # Add more PDF paths here
 ]  # List of files to process
 vector_db_path = "vector_db_tesla.index"
@@ -47,7 +47,7 @@ result = add_data_to_vector_db(
     db_type=vector_db_type,
     db_config=db_config,
     embedding_provider="sentence_transformers",
-    embedding_model="all-mpnet-base-v2",
+    embedding_model="all-MiniLM-L6-v2",
     use_gpu=True
 )
 print(result)
@@ -71,7 +71,7 @@ retrieved_context = query_vector_db(
     db_type=vector_db_type,
     query=query,
     embedding_provider="sentence_transformers",
-    embedding_model="all-mpnet-base-v2",
+    embedding_model="all-MiniLM-L6-v2",
     top_k=5,
     use_gpu=False,
     db_config=db_config

@@ -1,4 +1,4 @@
-from reasonchain.utils. lazy_imports import os, pinecone, numpy as np, time, psutil, torch
+from reasonchain.utils.lazy_imports import os, pinecone, numpy as np, time, psutil, torch
 import re
 from dataclasses import dataclass
 from typing import Dict, Any, List

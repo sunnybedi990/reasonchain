@@ -4,6 +4,7 @@ embedding_configs = {
         "all-mpnet-base-v2": {"dimension": 768, "description": "High-quality sentence embeddings for semantic search and clustering."},
         "all-MiniLM-L6-v2": {"dimension": 384, "description": "Efficient model balancing performance and computational needs."},
         "paraphrase-MiniLM-L12-v2": {"dimension": 384, "description": "Captures paraphrastic relationships for paraphrase detection."},
+        
     },
     "openai": {
         "text-embedding-ada-002": {"dimension": 1536, "description": "High-quality embeddings for various NLP tasks via OpenAI API."}

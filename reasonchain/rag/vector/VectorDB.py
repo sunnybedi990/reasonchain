@@ -1,14 +1,10 @@
-import os
-import numpy as np
-import faiss
-import pickle
-from sentence_transformers import SentenceTransformer
+from reasonchain.utils.lazy_imports import os, numpy as np, yaml, json
+
+
 from reasonchain.rag.embeddings.embedding_initializer import initialize_embedding_model
 from reasonchain.rag.adapters import FAISSVectorDB, MilvusVectorDB, PineconeVectorDB, QdrantVectorDB, WeaviateVectorDB
-import yaml
-import json
-import numpy as np
-from reasonchain.rag.vector.utils import extract_name_from_path, pad_embedding
+
+from reasonchain.rag.vector.utils import extract_name_from_path, pad_embedding, resize_embeddings
 
 
 def load_config():
@@ -172,8 +168,10 @@ class VectorDB:
                 clip_embedding = clip_embedding.flatten()
 
             # Ensure consistent dimensions
-            if clip_embedding.shape[-1] != dimension:
+            if clip_embedding.shape[-1] < dimension:
                 clip_embedding = pad_embedding(clip_embedding, dimension)
+            elif clip_embedding.shape[-1] > dimension:
+                clip_embedding = resize_embeddings(clip_embedding, dimension)
 
             return np.array(clip_embedding, dtype='float32')
         except Exception as e:
@@ -286,3 +284,51 @@ class VectorDB:
                 return self.db.get_all()
             else:
                 raise NotImplementedError(f"'get_all' is not implemented for {type(self.db)}.")
+        
+    def get_embedding_dimension(self):
+        """
+        Retrieves the dimension of the embeddings stored in the vector database.
+        """
+        return self.dimension
+    
+    def get_embedding_model(self):
+        """
+        Retrieves the embedding model used in the vector database.
+        """
+        return self.model
+    
+    def get_embedding_provider(self):
+        """
+        Retrieves the embedding provider used in the vector database.
+        """
+        return self.embedding_provider
+    
+    def get_db_type(self):
+        """
+        Retrieves the type of the vector database.
+        """
+        return self.db_type
+    
+    def get_db_path(self):
+        """
+        Retrieves the path of the vector database.
+        """
+        return self.db_path
+
+    def get_db_config(self):
+        """
+        Retrieves the configuration of the vector database.
+        """
+        return self.db_config
+
+    def get_use_gpu(self):
+        """
+        Retrieves the use_gpu flag.
+        """
+        return self.use_gpu
+
+    def get_iscallable(self):
+        """
+        Retrieves the iscallable flag.
+        """
+        return self.iscallable
