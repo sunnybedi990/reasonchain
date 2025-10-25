@@ -1,11 +1,47 @@
 from reasonchain.utils.lazy_imports import sentence_transformers, openai, transformers, tensorflow_hub, gensim_downloader, dotenv, os
 from reasonchain.rag.embeddings.embedding_config import get_embedding_config
+from reasonchain.llm_models.provider_registry import EmbeddingProviderRegistry
 
 dotenv.load_dotenv()  # Load environment variables
 
+# Import to trigger auto-registration of embedding providers
+try:
+    import reasonchain.rag.embeddings.register_embedding_providers
+except ImportError:
+    pass
 
-def initialize_embedding_model(provider, model_name, api_key=None):
-    """Initializes the embedding model based on the provider and model name."""
+
+def initialize_embedding_model(provider, model_name, api_key=None, use_provider_system=True):
+    """
+    Initializes the embedding model based on the provider and model name.
+    
+    Args:
+        provider (str): Provider name
+        model_name (str): Model name
+        api_key (str, optional): API key if required
+        use_provider_system (bool): Whether to use the new provider system (default: True)
+        
+    Returns:
+        tuple: (model, dimension, is_callable)
+    """
+    # Try using the new provider system first
+    if use_provider_system:
+        try:
+            embedding_provider = EmbeddingProviderRegistry.get_provider(
+                name=provider,
+                model_name=model_name,
+                api_key=api_key
+            )
+            
+            dimension = embedding_provider.get_dimension()
+            print(f"Provider: {provider}, Model: {model_name}, Dimension: {dimension} (using provider system)")
+            
+            # Return provider with wrapper for backward compatibility
+            return embedding_provider, dimension, False
+        except Exception as e:
+            print(f"Provider system not available for {provider}, falling back to legacy mode: {e}")
+    
+    # Legacy mode - backward compatible
     config = get_embedding_config(provider, model_name)
     dimension = config["dimension"]
     print(f"Provider: {provider}, Model: {model_name}, Dimension: {dimension}")

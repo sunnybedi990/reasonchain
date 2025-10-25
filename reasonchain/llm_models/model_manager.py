@@ -1,25 +1,71 @@
 import os
 from reasonchain.llm_models.fine_tune import fine_tune_model
+from reasonchain.llm_models.provider_registry import LLMProviderRegistry
+from reasonchain.llm_models.base_provider import BaseLLMProvider
 from reasonchain.utils.lazy_imports import os, openai, ollama, groq, dotenv, transformers
 
 dotenv.load_dotenv()
 
+# Import to trigger auto-registration of built-in providers
+try:
+    import reasonchain.llm_models.register_providers
+except ImportError:
+    pass
+
+
 class ModelManager:
-    def __init__(self, api='openai',model_name='gpt-4', custom_model_path=None):
+    """
+    Enhanced ModelManager with pluggable provider architecture.
+    
+    Supports both legacy API (backward compatible) and new provider system.
+    Users can now register custom LLM providers without modifying core code.
+    """
+    
+    def __init__(self, api='openai', model_name='gpt-4', custom_model_path=None, provider=None, **kwargs):
         """
         Initialize the ModelManager to handle various APIs.
-        :param model_name: Default LLM model name.
-        :param custom_model_path: Path to a custom fine-tuned model (optional).
-
+        
+        Args:
+            api (str): API/provider name ('openai', 'groq', 'ollama', 'anthropic', 'custom')
+            model_name (str): Model name
+            custom_model_path (str, optional): Path to custom model
+            provider (BaseLLMProvider, optional): Pre-initialized provider instance
+            **kwargs: Additional provider configuration
         """
         self.api = api
         self.model_name = model_name
         self.custom_model_path = custom_model_path
         self.custom_model = None
         self.tokenizer = None
-
-        if api == 'custom' and custom_model_path:
-            self._load_custom_model(custom_model_path)      
+        self.kwargs = kwargs
+        
+        # Use provider system if available
+        self.provider = provider
+        if self.provider is None:
+            self._init_provider()
+        
+        # Legacy support for custom models
+        if api == 'custom' and custom_model_path and self.provider is None:
+            self._load_custom_model(custom_model_path)
+    
+    def _init_provider(self):
+        """Initialize provider using the registry."""
+        try:
+            # Prepare kwargs for provider initialization
+            provider_kwargs = self.kwargs.copy()
+            if self.custom_model_path:
+                provider_kwargs['model_path'] = self.custom_model_path
+            
+            self.provider = LLMProviderRegistry.get_provider(
+                name=self.api,
+                model_name=self.model_name,
+                **provider_kwargs
+            )
+            print(f"Initialized {self.api} provider with model {self.model_name}")
+        except Exception as e:
+            print(f"Could not initialize provider {self.api}: {e}")
+            print("Falling back to legacy mode")
+            self.provider = None      
         
     def _load_custom_model(self, custom_model_path):
             """
@@ -87,14 +133,27 @@ class ModelManager:
         except Exception as e:
             print(f"Error generating response with custom model: {e}")
             return "// No response from custom model."
-    def generate_response(self, prompt, api=None, model_name=None):
+    def generate_response(self, prompt, api=None, model_name=None, **kwargs):
         """
-        Generate a response using the specified API.
-        :param prompt: Text prompt for the LLM.
-        :param api: API to use ('openai', 'ollama', or 'groq').
-        :param selected_model: Specific model to use for the API.
-        :return: Generated response or error message.
+        Generate a response using the specified API/provider.
+        
+        Args:
+            prompt (str): Text prompt for the LLM
+            api (str, optional): API to use (overrides instance API)
+            model_name (str, optional): Model name (overrides instance model)
+            **kwargs: Additional generation parameters
+            
+        Returns:
+            str: Generated response or error message
         """
+        # Try using provider system first
+        if self.provider and not api:
+            try:
+                return self.provider.generate_response(prompt, **kwargs)
+            except Exception as e:
+                print(f"[ModelManager] Provider error: {e}, falling back to legacy mode")
+        
+        # Legacy mode or API override
         api = api or self.api
         selected_model = model_name or self.model_name
         try:

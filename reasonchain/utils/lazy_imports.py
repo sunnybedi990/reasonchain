@@ -173,6 +173,8 @@ pymilvus = LazyImport("pymilvus", "pymilvus")
 pinecone = LazyImport("pinecone", "pinecone")
 qdrant_client = LazyImport("qdrant_client", "qdrant-client")
 weaviate = LazyImport("weaviate", "weaviate-client")
+psycopg2 = LazyImport("psycopg2", "psycopg2-binary")
+elasticsearch = LazyImport("elasticsearch", "elasticsearch")
 pickle = pickle
 
 # LLM Integration

@@ -138,11 +138,21 @@ class VectorDB:
     def _generate_embeddings(self, texts):
         """
         Generates embeddings for the given texts using the initialized model.
+        
+        Now supports both the new provider system and legacy models.
         """
         try:
             if not isinstance(texts, list):
                 texts = [texts]  # Ensure input is a list
 
+            # Check if model is a BaseEmbeddingProvider
+            from reasonchain.llm_models.base_provider import BaseEmbeddingProvider
+            if isinstance(self.model, BaseEmbeddingProvider):
+                # Use the provider system (batch processing for efficiency)
+                embeddings = self.model.embed_batch(texts)
+                return np.array(embeddings, dtype='float32')
+            
+            # Legacy mode
             if self.iscallable:
                 # If the model is callable (e.g., HuggingFace pipeline or OpenAI embeddings)
                 embeddings = [self.model(text) for text in texts]

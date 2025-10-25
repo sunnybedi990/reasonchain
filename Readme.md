@@ -12,6 +12,9 @@
 
 2. **RAG Integration**:
    - Retrieve and augment responses using long-term memory stored in vector databases like FAISS.
+   - **Direct Data Input**: Add raw text, pre-computed embeddings, or structured data directly to vector databases.
+   - **External Source Integration**: Connect to databases, APIs, cloud storage, and Elasticsearch for data ingestion.
+   - **Multi-Format Processing**: Enhanced support for processing diverse file formats simultaneously.
 
 3. **Short-term and Long-term Memory**:
    - Session-based short-term memory for reasoning chains.
@@ -19,20 +22,27 @@
 
 4. **LLM Compatibility**:
    - Supports OpenAI GPT, Llama, and other models for robust reasoning and summarization.
+   - **NEW: Extensible Provider Architecture** - Easily add support for ANY LLM service (Anthropic, Cohere, AI21, etc.)
 
-5. **Utility Tools**:
+5. **Custom Embedding Models**:
+   - Register and use custom embedding models from HuggingFace, local files, or fine-tuned models.
+   - Support for multilingual and domain-specific embedding models.
+   - **NEW: Plugin Architecture** - Add custom embedding providers without modifying core code.
+
+6. **Utility Tools**:
    - Adaptive complexity evaluation for reasoning tasks.
    - Centralized model management for handling LLM interactions.
 
-6. **Supported File Types**:
+7. **Supported File Types**:
    - Extract text, tables, and figures from a wide range of file formats, including:
      - **Documents**: PDF, Word, RTF, Markdown, HTML, LaTeX.
      - **Spreadsheets**: Excel, CSV.
      - **Multimedia**: Images, Videos, Audio.
      - **E-books**: EPUB, MOBI.
    - Provides modular extractors tailored for each file type, ensuring efficient data retrieval.
+   - **Batch Processing**: Process multiple file formats simultaneously with optimized performance.
 
-7. **Domain Templates**:
+8. **Domain Templates**:
    - Pre-built reasoning templates tailored for specific industries and applications:
      - **Customer Support**: Automates handling of customer inquiries and escalations.
      - **Healthcare**: Assists in diagnosis recommendations and treatment plans.
@@ -126,7 +136,7 @@ ReasonChain makes it easy to create multi-agent systems and integrate them with 
 
 ```python
 from reasonchain.agent import Agent, MultiAgentSystem
-from reasonchain.rag.vector.add_to_vector_db import add_pdf_to_vector_db
+from reasonchain.rag.vector.add_to_vector_db import add_data_to_vector_db
 from reasonchain.rag.rag_main import query_vector_db
 from reasonchain.utils import (
     store_in_shared_memory,
@@ -147,9 +157,9 @@ multi_agent_system.register_agent(agent1)
 multi_agent_system.register_agent(agent2)
 multi_agent_system.register_agent(agent3)
 
-# Add a document to the vector database
-add_pdf_to_vector_db(
-    pdf_path="path/to/tesla-report.pdf",
+# Add documents to the vector database
+add_data_to_vector_db(
+    file_paths=["path/to/tesla-report.pdf", "path/to/data.xlsx", "path/to/notes.md"],
     db_path="vector_db.index",
     db_type="faiss",
     embedding_provider="sentence_transformers",
@@ -181,13 +191,276 @@ print(f"Successful Agents: {successful_agents}")
 
 ---
 
+## **Extensible Provider Architecture**
+
+### **🔌 Plugin System for LLMs and Embeddings**
+
+ReasonChain now features a powerful plugin architecture that allows you to easily add support for ANY LLM or embedding service without modifying core code!
+
+### **Register Custom LLM Providers**
+
+Adding support for a new LLM service is as simple as implementing a base class:
+
+```python
+from reasonchain.llm_models.base_provider import BaseLLMProvider
+from reasonchain.llm_models.provider_registry import LLMProviderRegistry
+
+# 1. Create your custom provider
+class CohereProvider(BaseLLMProvider):
+    def __init__(self, model_name, api_key=None, **kwargs):
+        super().__init__(model_name, api_key, **kwargs)
+        import cohere
+        self.client = cohere.Client(api_key or os.getenv("COHERE_API_KEY"))
+    
+    def generate_response(self, prompt, **kwargs):
+        response = self.client.generate(
+            model=self.model_name,
+            prompt=prompt,
+            max_tokens=kwargs.get('max_tokens', 2000)
+        )
+        return response.generations[0].text
+    
+    def generate_chat_response(self, messages, **kwargs):
+        # Implement chat format
+        prompt = "\n".join([f"{m['role']}: {m['content']}" for m in messages])
+        return self.generate_response(prompt, **kwargs)
+
+# 2. Register your provider
+LLMProviderRegistry.register('cohere', CohereProvider)
+
+# 3. Use it like any other provider!
+agent = Agent(name="Cohere_Agent", model_name="command", api="cohere")
+```
+
+### **Built-in LLM Providers**
+
+ReasonChain comes with these providers out of the box:
+- **OpenAI** - GPT-4, GPT-3.5, etc.
+- **Groq** - Fast inference with Llama, Mixtral
+- **Ollama** - Local models (Llama, Mistral, etc.)
+- **Anthropic** - Claude models
+- **Custom** - Your fine-tuned models
+
+### **Built-in Embedding Providers**
+
+ReasonChain comes with these embedding providers:
+- **sentence_transformers** - All sentence-transformers models (all-mpnet-base-v2, all-MiniLM-L6-v2, etc.)
+- **openai** - OpenAI embeddings (text-embedding-ada-002, text-embedding-3-small/large)
+- **hugging_face** - Any HuggingFace transformer model (BERT, RoBERTa, DistilBERT, custom models)
+
+### **Register Custom Embedding Providers**
+
+Same simple pattern for embedding providers:
+
+```python
+from reasonchain.llm_models.base_provider import BaseEmbeddingProvider
+from reasonchain.llm_models.provider_registry import EmbeddingProviderRegistry
+
+class VoyageEmbeddingProvider(BaseEmbeddingProvider):
+    def __init__(self, model_name, api_key=None, **kwargs):
+        super().__init__(model_name, api_key, **kwargs)
+        import voyageai
+        self.client = voyageai.Client(api_key=api_key)
+        self._dimension = 1024
+    
+    def embed_text(self, text):
+        result = self.client.embed([text], model=self.model_name)
+        return result.embeddings[0]
+    
+    def embed_batch(self, texts, batch_size=128):
+        result = self.client.embed(texts, model=self.model_name)
+        return result.embeddings
+    
+    def get_dimension(self):
+        return self._dimension
+
+# Register and use!
+EmbeddingProviderRegistry.register('voyage', VoyageEmbeddingProvider)
+
+# Use in RAG pipeline
+add_data_to_vector_db(
+    file_paths=["documents.pdf"],
+    embedding_provider="voyage",
+    embedding_model="voyage-01"
+)
+```
+
+### **Why This Matters**
+
+✅ **No Core Changes Needed** - Add new providers without touching ReasonChain internals  
+✅ **Full Backward Compatibility** - Existing code works unchanged  
+✅ **Support ANY Service** - Anthropic, Cohere, AI21, Voyage, local models, custom APIs  
+✅ **Easy to Share** - Package your providers as plugins  
+✅ **Future-Proof** - New LLM services? Just add a provider!
+
+---
+
+## **Custom Embedding Models**
+
+ReasonChain supports registering and using custom embedding models for specialized use cases:
+
+### **Register HuggingFace Models**
+```python
+from reasonchain.rag.embeddings.embedding_config import register_huggingface_model
+
+# Register a multilingual model
+register_huggingface_model(
+    "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+    384,
+    "Multilingual paraphrase model for cross-language understanding"
+)
+
+# Use the registered model
+add_data_to_vector_db(
+    file_paths=["document.pdf"],
+    embedding_provider="huggingface",
+    embedding_model="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+)
+```
+
+### **Register Fine-Tuned Models**
+```python
+from reasonchain.rag.embeddings.embedding_config import register_fine_tuned_model
+
+# Register your fine-tuned model
+register_fine_tuned_model(
+    "my-domain-model",
+    "/path/to/fine-tuned-model",
+    768,
+    "Custom model fine-tuned for domain-specific tasks"
+)
+```
+
+### **List Available Models**
+```python
+from reasonchain.rag.embeddings.embedding_config import list_available_models
+
+# See all registered models
+models = list_available_models()
+print(models)
+```
+
+---
+
+## **Direct Data Input & External Sources**
+
+ReasonChain now supports adding data directly to vector databases without file processing, enabling seamless integration with various data sources.
+
+### **Raw Data Input**
+Add text data directly with automatic embedding generation:
+
+```python
+from reasonchain.rag.vector.add_to_vector_db import add_raw_data_to_vector_db
+
+# Add raw text data
+texts = [
+    "Machine learning enables computers to learn from experience.",
+    "Natural language processing helps computers understand human language.",
+    "Computer vision trains computers to interpret visual data."
+]
+
+add_raw_data_to_vector_db(
+    texts=texts,
+    db_path="raw_data_db.index",
+    embedding_provider="sentence_transformers",
+    embedding_model="all-mpnet-base-v2"
+)
+```
+
+### **Pre-computed Embeddings**
+Use your own embeddings with associated text:
+
+```python
+import numpy as np
+
+# Your pre-computed embeddings (e.g., from a fine-tuned model)
+embeddings = np.random.rand(3, 768)  # 3 embeddings of 768 dimensions
+texts = ["Text 1", "Text 2", "Text 3"]
+
+add_raw_data_to_vector_db(
+    texts=texts,
+    embeddings=embeddings,
+    db_path="custom_embeddings_db.index"
+)
+```
+
+### **Structured Data Integration**
+Process structured data from APIs, databases, or JSON:
+
+```python
+from reasonchain.rag.vector.add_to_vector_db import add_structured_data_to_vector_db
+
+# Structured data (e.g., from an API response)
+data = [
+    {"text": "Article content 1", "title": "AI Trends", "category": "technology", "date": "2025-01-01"},
+    {"text": "Article content 2", "title": "ML Applications", "category": "science", "date": "2025-01-02"}
+]
+
+add_structured_data_to_vector_db(
+    data,
+    text_field="text",
+    metadata_fields=["title", "category", "date"],
+    db_path="structured_db.index"
+)
+```
+
+### **External Source Integration**
+Connect directly to databases, APIs, and cloud services:
+
+```python
+from reasonchain.rag.vector.add_to_vector_db import add_external_source_to_vector_db
+
+# Database integration
+db_config = {
+    'connection_string': 'postgresql://user:pass@localhost/db',
+    'query': 'SELECT content, title, category FROM articles WHERE published = true',
+    'text_field': 'content',
+    'metadata_fields': ['title', 'category']
+}
+
+add_external_source_to_vector_db(
+    source_type='database',
+    source_config=db_config,
+    db_path="database_content_db.index"
+)
+
+# API integration
+api_config = {
+    'url': 'https://api.example.com/articles',
+    'headers': {'Authorization': 'Bearer your-token'},
+    'text_field': 'content',
+    'metadata_fields': ['title', 'author', 'date']
+}
+
+add_external_source_to_vector_db(
+    source_type='api',
+    source_config=api_config,
+    db_path="api_content_db.index"
+)
+```
+
+### **Supported External Sources**
+- **Databases**: PostgreSQL, SQLite with custom SQL queries
+- **REST APIs**: JSON responses with configurable field mapping
+- **Elasticsearch**: Direct index querying with custom search queries
+- **Cloud Storage**: (Coming soon) AWS S3, Google Cloud Storage, Azure Blob
+
+---
+
 ## **Examples**
 
 Explore more scripts in the `examples/` directory:
 - **`rag_pipeline_example.py`**: Example of using RAG for context-enhanced reasoning.
+- **`direct_data_input_example.py`**: Comprehensive examples of adding raw data, structured data, and external sources directly to vector databases.
+- **`enhanced_multi_format_rag_example.py`**: Demonstrates processing multiple file formats with custom embedding models.
+- **`custom_provider_example.py`**: Shows how to create and register custom LLM providers (Cohere, Anthropic, local models, etc.).
+- **`custom_embedding_provider_example.py`**: Demonstrates creating custom embedding providers (Voyage AI, Cohere, local services).
 - **`multi-agent_collaboration.py`**: Multi-agent collaboration example.
+- **`multi-agent_with_rag_example.py`**: Multi-agent systems integrated with RAG pipelines.
 - **`tree_of_thought_example.py`**: Demonstrates Tree of Thought reasoning.
 - **`hybrid_reasoning_example.py`**: Combines multiple reasoning methods.
+- **`fine_tuned_model_example.py`**: Shows how to use custom and fine-tuned models.
+- **`domain_templates_example/`**: Industry-specific examples for various domains.
 
 ---
 
@@ -337,17 +610,17 @@ For a detailed breakdown of the project structure, see the [CONTRIBUTING.md](CON
 
 ## **Future Enhancements**
 
-1. **Domain-Specific Templates**:
-   - Add pre-trained reasoning templates for specialized applications.
+1. **Cloud Storage Integration**:
+   - Complete integration with AWS S3, Google Cloud Storage, and Azure Blob Storage.
 
-2. **Agent Collaboration**:
-   - Enable seamless teamwork between agents.
+2. **Advanced Multi-Agent Orchestration**:
+   - Enhanced coordination and task distribution among agent teams.
 
-3. **Extended RAG Support**:
-   - Integrate with Pinecone, Milvus, and more vector databases.
+3. **Real-time Data Streaming**:
+   - Support for real-time data ingestion from Kafka, Redis, and other streaming platforms.
 
-4. **Fine-Tuning Support**:
-   - Incorporate custom fine-tuned models for advanced reasoning.
+4. **Advanced Analytics Dashboard**:
+   - Web-based interface for monitoring RAG performance and vector database metrics.
 
 ---
 
